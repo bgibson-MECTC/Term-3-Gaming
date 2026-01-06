@@ -1,291 +1,528 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import React, { useState, useEffect, useRef } from 'react';
+import { initializeApp } from 'firebase/app';
+import { 
+  getFirestore, 
+  collection, 
+  addDoc, 
+  getDocs, 
+  query, 
+  orderBy, 
+  limit,
+  serverTimestamp 
+} from 'firebase/firestore';
+import { 
+  getAuth, 
+  signInAnonymously, 
+  onAuthStateChanged 
+} from 'firebase/auth';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Heart, Brain, Stethoscope, Award, Clock, Target } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyCUDuHefWAoVrG6Gf4mDVaxnKuZzkdtBAw",
+  authDomain: "term3-rn.firebaseapp.com",
+  projectId: "term3-rn",
+  storageBucket: "term3-rn.firebasestorage.app",
+  messagingSenderId: "494666669692",
+  appId: "1:494666669692:web:67b5a9b3ad9dd65b7a33f9",
+  measurementId: "G-B13V3P1WEH"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
 
 const RNMasteryGame = () => {
   const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [userAnswer, setUserAnswer] = useState('');
+  const [feedback, setFeedback] = useState('');
   const [score, setScore] = useState(0);
   const [questionsAnswered, setQuestionsAnswered] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [feedback, setFeedback] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(30);
   const [gameStarted, setGameStarted] = useState(false);
-  const [difficulty, setDifficulty] = useState('intermediate');
+  const [playerName, setPlayerName] = useState('');
+  const [showNameInput, setShowNameInput] = useState(true);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [userId, setUserId] = useState(null);
+  const [difficulty, setDifficulty] = useState('medium');
+  const [streak, setStreak] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [isTimerActive, setIsTimerActive] = useState(false);
+  const timerRef = useRef(null);
 
-  const categories = [
-    { name: 'Pharmacology', icon: '💊', color: 'bg-blue-100' },
-    { name: 'Patient Care', icon: '🏥', color: 'bg-green-100' },
-    { name: 'Medical-Surgical', icon: '⚕️', color: 'bg-purple-100' },
-    { name: 'Critical Care', icon: '🚨', color: 'bg-red-100' },
-    { name: 'Pediatrics', icon: '👶', color: 'bg-yellow-100' },
-    { name: 'Maternal Health', icon: '🤰', color: 'bg-pink-100' }
-  ];
+  // Authentication
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserId(user.uid);
+      } else {
+        signInAnonymously(auth).catch((error) => {
+          console.error("Authentication error:", error);
+        });
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Timer effect
   useEffect(() => {
-    if (gameStarted && !showFeedback && timeLeft > 0) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-      return () => clearTimeout(timer);
-    } else if (timeLeft === 0 && !showFeedback) {
-      handleTimeout();
+    if (isTimerActive && timeLeft > 0) {
+      timerRef.current = setTimeout(() => {
+        setTimeLeft(timeLeft - 1);
+      }, 1000);
+    } else if (timeLeft === 0 && isTimerActive) {
+      handleTimeUp();
     }
-  }, [timeLeft, gameStarted, showFeedback]);
 
-  const callGemini = async (prompt) => {
-    const apiKey = 'AIzaSyBfeueY-eQstjStuIgk3FZvIDYOf46LlJ4';
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
-
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }]
-        })
-      });
-
-      const data = await response.json();
-      return data.candidates[0].content.parts[0].text;
-    } catch (error) {
-      console.error('Error calling Gemini API:', error);
-      throw error;
-    }
-  };
-
-  const generateQuestion = async (category) => {
-    setIsLoading(true);
-    const prompt = `Generate a ${difficulty} level nursing education multiple choice question about ${category}. 
-    Format the response as JSON with the following structure:
-    {
-      "question": "the question text",
-      "options": ["option A", "option B", "option C", "option D"],
-      "correctAnswer": 0-3 (index of correct option),
-      "explanation": "detailed explanation of the correct answer"
-    }
-    Make sure the question is clinically relevant and appropriate for RN students.`;
-
-    try {
-      const response = await callGemini(prompt);
-      // Parse the JSON from the response
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const questionData = JSON.parse(jsonMatch[0]);
-        setCurrentQuestion({ ...questionData, category });
-        setTimeLeft(30);
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
       }
-    } catch (error) {
-      console.error('Error generating question:', error);
-      // Fallback question
-      setCurrentQuestion({
-        question: "What is the normal range for adult respiratory rate?",
-        options: ["8-12 breaths/min", "12-20 breaths/min", "20-30 breaths/min", "30-40 breaths/min"],
-        correctAnswer: 1,
-        explanation: "The normal respiratory rate for adults is 12-20 breaths per minute.",
-        category: category
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
+  }, [timeLeft, isTimerActive]);
 
-  const handleAnswerSelect = async (index) => {
-    if (showFeedback) return;
-    
-    setSelectedAnswer(index);
-    setShowFeedback(true);
-    
-    const isCorrect = index === currentQuestion.correctAnswer;
-    
-    if (isCorrect) {
-      setScore(score + 1);
-      setFeedback('Correct! ' + currentQuestion.explanation);
-    } else {
-      setFeedback('Incorrect. ' + currentQuestion.explanation);
-    }
-    
-    setQuestionsAnswered(questionsAnswered + 1);
-  };
-
-  const handleTimeout = () => {
-    setShowFeedback(true);
-    setFeedback('Time\'s up! ' + currentQuestion.explanation);
-    setQuestionsAnswered(questionsAnswered + 1);
-  };
-
-  const handleNextQuestion = () => {
-    setSelectedAnswer(null);
-    setShowFeedback(false);
-    setFeedback('');
-    const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-    generateQuestion(randomCategory.name);
+  const handleTimeUp = () => {
+    setIsTimerActive(false);
+    setFeedback('Time\'s up! Game over.');
+    endGame();
   };
 
   const startGame = () => {
-    setGameStarted(true);
-    setScore(0);
-    setQuestionsAnswered(0);
-    handleNextQuestion();
+    if (playerName.trim()) {
+      setShowNameInput(false);
+      setGameStarted(true);
+      setScore(0);
+      setQuestionsAnswered(0);
+      setStreak(0);
+      setTimeLeft(60);
+      setIsTimerActive(true);
+      generateQuestion();
+    }
   };
 
-  const getCategoryStyle = (categoryName) => {
-    const category = categories.find(c => c.name === categoryName);
-    return category ? category.color : 'bg-gray-100';
+  const generateQuestion = async () => {
+    setIsLoading(true);
+    setFeedback('');
+    setUserAnswer('');
+
+    const topics = [
+      'medication administration',
+      'patient assessment',
+      'infection control',
+      'IV therapy',
+      'wound care',
+      'pharmacology',
+      'vital signs',
+      'patient safety',
+      'documentation',
+      'ethics in nursing'
+    ];
+
+    const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+    
+    const difficultyPrompts = {
+      easy: 'Generate a basic nursing question about',
+      medium: 'Generate an intermediate nursing question about',
+      hard: 'Generate an advanced NCLEX-style nursing question about'
+    };
+
+    const prompt = `${difficultyPrompts[difficulty]} ${randomTopic}. 
+    Format your response as:
+    Question: [the question]
+    Options:
+    A) [option]
+    B) [option]
+    C) [option]
+    D) [option]
+    Correct Answer: [letter]
+    Explanation: [brief explanation]`;
+
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=AIzaSyBHH5P9kgWtRJ8KLmfD6qRoY1pvPUKOzOo`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: prompt,
+                  },
+                ],
+              },
+            ],
+          }),
+        }
+      );
+
+      const data = await response.json();
+      const generatedText = data.candidates[0].content.parts[0].text;
+      
+      const questionMatch = generatedText.match(/Question:(.*?)(?=Options:|$)/s);
+      const optionsMatch = generatedText.match(/Options:(.*?)(?=Correct Answer:|$)/s);
+      const answerMatch = generatedText.match(/Correct Answer:\s*([A-D])/i);
+      const explanationMatch = generatedText.match(/Explanation:(.*?)$/s);
+
+      if (questionMatch && optionsMatch && answerMatch) {
+        setCurrentQuestion({
+          question: questionMatch[1].trim(),
+          options: optionsMatch[1].trim(),
+          correctAnswer: answerMatch[1].toUpperCase(),
+          explanation: explanationMatch ? explanationMatch[1].trim() : 'No explanation provided.'
+        });
+      } else {
+        throw new Error('Failed to parse question format');
+      }
+    } catch (error) {
+      console.error('Error generating question:', error);
+      setFeedback('Error generating question. Please try again.');
+    }
+
+    setIsLoading(false);
   };
+
+  const handleSubmit = () => {
+    if (!userAnswer) {
+      setFeedback('Please select an answer!');
+      return;
+    }
+
+    const isCorrect = userAnswer.toUpperCase() === currentQuestion.correctAnswer;
+    
+    if (isCorrect) {
+      const points = difficulty === 'easy' ? 10 : difficulty === 'medium' ? 20 : 30;
+      const bonusPoints = streak >= 3 ? 10 : 0;
+      setScore(score + points + bonusPoints);
+      setStreak(streak + 1);
+      setFeedback(`✅ Correct! +${points + bonusPoints} points${bonusPoints > 0 ? ' (Streak bonus!)' : ''}\n\n${currentQuestion.explanation}`);
+    } else {
+      setStreak(0);
+      setFeedback(`❌ Incorrect. The correct answer was ${currentQuestion.correctAnswer}.\n\n${currentQuestion.explanation}`);
+    }
+
+    setQuestionsAnswered(questionsAnswered + 1);
+    setTimeLeft(timeLeft + 10); // Bonus time for answering
+  };
+
+  const nextQuestion = () => {
+    if (questionsAnswered < 10) {
+      generateQuestion();
+    } else {
+      endGame();
+    }
+  };
+
+  const endGame = async () => {
+    setIsTimerActive(false);
+    setGameStarted(false);
+    
+    if (userId && playerName && score > 0) {
+      try {
+        await addDoc(collection(db, 'leaderboard'), {
+          playerName: playerName,
+          score: score,
+          questionsAnswered: questionsAnswered,
+          difficulty: difficulty,
+          timestamp: serverTimestamp(),
+          userId: userId
+        });
+        
+        await loadLeaderboard();
+        setShowLeaderboard(true);
+      } catch (error) {
+        console.error('Error saving score:', error);
+      }
+    }
+  };
+
+  const loadLeaderboard = async () => {
+    try {
+      const q = query(
+        collection(db, 'leaderboard'),
+        orderBy('score', 'desc'),
+        limit(10)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      const scores = [];
+      querySnapshot.forEach((doc) => {
+        scores.push({ id: doc.id, ...doc.data() });
+      });
+      
+      setLeaderboard(scores);
+    } catch (error) {
+      console.error('Error loading leaderboard:', error);
+    }
+  };
+
+  const resetGame = () => {
+    setShowNameInput(true);
+    setShowLeaderboard(false);
+    setScore(0);
+    setQuestionsAnswered(0);
+    setStreak(0);
+    setCurrentQuestion(null);
+    setFeedback('');
+    setUserAnswer('');
+    setTimeLeft(60);
+    setIsTimerActive(false);
+  };
+
+  if (showNameInput) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-3xl text-center">🏥 RN Mastery Challenge</CardTitle>
+            <CardDescription className="text-center">
+              Test your nursing knowledge with AI-generated questions!
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Your Name</label>
+              <input
+                type="text"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter your name"
+                onKeyPress={(e) => e.key === 'Enter' && startGame()}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Difficulty</label>
+              <select
+                value={difficulty}
+                onChange={(e) => setDifficulty(e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="easy">Easy (10 pts)</option>
+                <option value="medium">Medium (20 pts)</option>
+                <option value="hard">Hard (30 pts)</option>
+              </select>
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-col gap-2">
+            <Button 
+              onClick={startGame} 
+              className="w-full"
+              disabled={!playerName.trim()}
+            >
+              Start Game
+            </Button>
+            <Button 
+              onClick={() => {
+                loadLeaderboard();
+                setShowLeaderboard(true);
+              }} 
+              variant="outline"
+              className="w-full"
+            >
+              View Leaderboard
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
+  if (showLeaderboard) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 flex items-center justify-center">
+        <Card className="w-full max-w-2xl">
+          <CardHeader>
+            <CardTitle className="text-3xl text-center">🏆 Leaderboard</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {leaderboard.map((entry, index) => (
+                <div
+                  key={entry.id}
+                  className="flex items-center justify-between p-4 bg-white rounded-lg shadow"
+                >
+                  <div className="flex items-center gap-4">
+                    <span className="text-2xl font-bold text-gray-400">
+                      #{index + 1}
+                    </span>
+                    <div>
+                      <p className="font-semibold">{entry.playerName}</p>
+                      <p className="text-sm text-gray-500">
+                        {entry.questionsAnswered} questions · {entry.difficulty}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge className="text-lg px-4 py-2">
+                    {entry.score} pts
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button onClick={resetGame} className="w-full">
+              Back to Menu
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
 
   if (!gameStarted) {
     return (
-      <div className="max-w-4xl mx-auto p-6">
-        <Card className="shadow-lg">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold flex items-center justify-center gap-2">
-              <Stethoscope className="w-8 h-8 text-blue-600" />
-              RN Mastery Challenge
-            </CardTitle>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-2xl text-center">Game Over!</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-lg text-gray-700 mb-4">
-                Test your nursing knowledge across multiple specialties!
-              </p>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-                {categories.map((cat, idx) => (
-                  <div key={idx} className={`${cat.color} p-4 rounded-lg text-center`}>
-                    <div className="text-3xl mb-2">{cat.icon}</div>
-                    <div className="font-semibold">{cat.name}</div>
-                  </div>
-                ))}
-              </div>
+          <CardContent className="text-center space-y-4">
+            <div>
+              <p className="text-5xl font-bold text-blue-600">{score}</p>
+              <p className="text-gray-600">Final Score</p>
             </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Select Difficulty:</label>
-                <div className="flex gap-2">
-                  {['beginner', 'intermediate', 'advanced'].map((level) => (
-                    <Button
-                      key={level}
-                      variant={difficulty === level ? 'default' : 'outline'}
-                      onClick={() => setDifficulty(level)}
-                      className="flex-1 capitalize"
-                    >
-                      {level}
-                    </Button>
-                  ))}
-                </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <p className="text-2xl font-bold">{questionsAnswered}</p>
+                <p className="text-sm text-gray-600">Questions</p>
               </div>
-
-              <Button 
-                onClick={startGame} 
-                className="w-full py-6 text-lg"
-                size="lg"
-              >
-                Start Game
-              </Button>
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <p className="text-2xl font-bold">{difficulty}</p>
+                <p className="text-sm text-gray-600">Difficulty</p>
+              </div>
             </div>
           </CardContent>
+          <CardFooter className="flex flex-col gap-2">
+            <Button onClick={resetGame} className="w-full">
+              Play Again
+            </Button>
+            <Button 
+              onClick={() => {
+                loadLeaderboard();
+                setShowLeaderboard(true);
+              }}
+              variant="outline"
+              className="w-full"
+            >
+              View Leaderboard
+            </Button>
+          </CardFooter>
         </Card>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <Card className="shadow-lg">
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-2xl font-bold flex items-center gap-2">
-              <Brain className="w-6 h-6 text-purple-600" />
-              RN Mastery Challenge
-            </CardTitle>
-            <div className="flex gap-4 items-center">
-              <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-blue-600" />
-                <span className={`font-bold ${timeLeft <= 10 ? 'text-red-600' : ''}`}>
-                  {timeLeft}s
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Award className="w-5 h-5 text-yellow-600" />
-                <span className="font-bold">{score}/{questionsAnswered}</span>
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Game Header */}
+        <div className="mb-4 flex justify-between items-center bg-white p-4 rounded-lg shadow">
+          <div className="flex gap-4">
+            <div>
+              <p className="text-sm text-gray-600">Score</p>
+              <p className="text-2xl font-bold text-blue-600">{score}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Question</p>
+              <p className="text-2xl font-bold">{questionsAnswered}/10</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Streak</p>
+              <p className="text-2xl font-bold text-orange-600">{streak}🔥</p>
             </div>
           </div>
-        </CardHeader>
+          <div>
+            <p className="text-sm text-gray-600">Time</p>
+            <p className={`text-2xl font-bold ${timeLeft < 20 ? 'text-red-600' : 'text-green-600'}`}>
+              {timeLeft}s
+            </p>
+          </div>
+        </div>
 
-        <CardContent className="space-y-6">
-          {isLoading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-4 text-gray-600">Generating question...</p>
-            </div>
-          ) : currentQuestion ? (
-            <>
-              <div className={`${getCategoryStyle(currentQuestion.category)} p-4 rounded-lg`}>
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-sm">Category: {currentQuestion.category}</span>
-                  <span className="text-xs bg-white px-2 py-1 rounded capitalize">{difficulty}</span>
+        {/* Main Game Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Question {questionsAnswered + 1}</CardTitle>
+            <CardDescription>
+              Difficulty: <Badge>{difficulty}</Badge>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Generating question...</p>
+              </div>
+            ) : currentQuestion ? (
+              <>
+                <div className="prose max-w-none">
+                  <p className="text-lg font-medium">{currentQuestion.question}</p>
                 </div>
-              </div>
+                
+                <div className="space-y-2">
+                  {currentQuestion.options.split('\n').filter(opt => opt.trim()).map((option, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setUserAnswer(option.trim()[0])}
+                      className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                        userAnswer === option.trim()[0]
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      disabled={!!feedback}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
 
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <h3 className="text-xl font-semibold mb-4">{currentQuestion.question}</h3>
-              </div>
-
-              <div className="space-y-3">
-                {currentQuestion.options.map((option, index) => (
-                  <Button
-                    key={index}
-                    onClick={() => handleAnswerSelect(index)}
-                    disabled={showFeedback}
-                    variant="outline"
-                    className={`w-full p-6 text-left justify-start h-auto ${
-                      showFeedback && index === currentQuestion.correctAnswer
-                        ? 'bg-green-100 border-green-500'
-                        : showFeedback && index === selectedAnswer
-                        ? 'bg-red-100 border-red-500'
-                        : ''
-                    }`}
-                  >
-                    <span className="font-semibold mr-3">{String.fromCharCode(65 + index)}.</span>
-                    {option}
-                  </Button>
-                ))}
-              </div>
-
-              {showFeedback && (
-                <Alert className={selectedAnswer === currentQuestion.correctAnswer ? 'bg-green-50' : 'bg-blue-50'}>
-                  <AlertDescription className="text-base">
-                    {feedback}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {showFeedback && (
-                <Button onClick={handleNextQuestion} className="w-full py-6 text-lg">
-                  Next Question
-                </Button>
-              )}
-            </>
-          ) : null}
-
-          <div className="pt-4 border-t">
-            <div className="flex justify-between items-center text-sm text-gray-600">
-              <span>Questions Completed: {questionsAnswered}</span>
-              <span>Accuracy: {questionsAnswered > 0 ? Math.round((score/questionsAnswered) * 100) : 0}%</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+                {feedback && (
+                  <Alert>
+                    <AlertDescription className="whitespace-pre-line">
+                      {feedback}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </>
+            ) : null}
+          </CardContent>
+          <CardFooter className="flex gap-2">
+            {!feedback ? (
+              <Button 
+                onClick={handleSubmit} 
+                className="w-full"
+                disabled={!userAnswer || isLoading}
+              >
+                Submit Answer
+              </Button>
+            ) : (
+              <Button 
+                onClick={nextQuestion} 
+                className="w-full"
+              >
+                {questionsAnswered < 10 ? 'Next Question' : 'Finish Game'}
+              </Button>
+            )}
+          </CardFooter>
+        </Card>
+      </div>
     </div>
   );
 };
