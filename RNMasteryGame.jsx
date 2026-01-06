@@ -1,527 +1,539 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { initializeApp } from 'firebase/app';
-import { 
-  getFirestore, 
-  collection, 
-  addDoc, 
-  getDocs, 
-  query, 
-  orderBy, 
-  limit,
-  serverTimestamp 
-} from 'firebase/firestore';
-import { 
-  getAuth, 
-  signInAnonymously, 
-  onAuthStateChanged 
-} from 'firebase/auth';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
+import React, { useState, useEffect, useCallback } from 'react';
+import { collection, addDoc, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { db } from './firebase';
 
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyCUDuHefWAoVrG6Gf4mDVaxnKuZzkdtBAw",
-  authDomain: "term3-rn.firebaseapp.com",
-  projectId: "term3-rn",
-  storageBucket: "term3-rn.firebasestorage.app",
-  messagingSenderId: "494666669692",
-  appId: "1:494666669692:web:67b5a9b3ad9dd65b7a33f9",
-  measurementId: "G-B13V3P1WEH"
+// Custom Button Component
+const Button = ({ children, onClick, disabled, variant = 'default', className = '', ...props }) => {
+  const baseStyles = 'px-4 py-2 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+  const variants = {
+    default: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
+    outline: 'border-2 border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-gray-500',
+    ghost: 'bg-transparent text-gray-700 hover:bg-gray-100 focus:ring-gray-500',
+    destructive: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
+  };
+  
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`${baseStyles} ${variants[variant]} ${className}`}
+      {...props}
+    >
+      {children}
+    </button>
+  );
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
+// Custom Card Components
+const Card = ({ children, className = '', ...props }) => (
+  <div className={`bg-white rounded-lg border border-gray-200 shadow-sm ${className}`} {...props}>
+    {children}
+  </div>
+);
+
+const CardHeader = ({ children, className = '', ...props }) => (
+  <div className={`p-6 border-b border-gray-200 ${className}`} {...props}>
+    {children}
+  </div>
+);
+
+const CardTitle = ({ children, className = '', ...props }) => (
+  <h3 className={`text-2xl font-bold text-gray-900 ${className}`} {...props}>
+    {children}
+  </h3>
+);
+
+const CardContent = ({ children, className = '', ...props }) => (
+  <div className={`p-6 ${className}`} {...props}>
+    {children}
+  </div>
+);
+
+// Custom Input Component
+const Input = ({ className = '', ...props }) => (
+  <input
+    className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed ${className}`}
+    {...props}
+  />
+);
+
+// Custom Alert Components
+const Alert = ({ children, variant = 'default', className = '', ...props }) => {
+  const variants = {
+    default: 'bg-blue-50 border-blue-200 text-blue-800',
+    destructive: 'bg-red-50 border-red-200 text-red-800',
+    success: 'bg-green-50 border-green-200 text-green-800',
+  };
+  
+  return (
+    <div className={`p-4 border rounded-md ${variants[variant]} ${className}`} {...props}>
+      {children}
+    </div>
+  );
+};
+
+const AlertDescription = ({ children, className = '', ...props }) => (
+  <div className={`text-sm ${className}`} {...props}>
+    {children}
+  </div>
+);
+
+// Custom Progress Component
+const Progress = ({ value = 0, className = '', ...props }) => (
+  <div className={`w-full bg-gray-200 rounded-full h-2.5 overflow-hidden ${className}`} {...props}>
+    <div 
+      className="bg-blue-600 h-full transition-all duration-300 ease-out"
+      style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
+    />
+  </div>
+);
+
+// Custom Badge Component
+const Badge = ({ children, variant = 'default', className = '', ...props }) => {
+  const variants = {
+    default: 'bg-gray-100 text-gray-800',
+    secondary: 'bg-gray-200 text-gray-900',
+    outline: 'border border-gray-300 text-gray-700',
+    destructive: 'bg-red-100 text-red-800',
+  };
+  
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${variants[variant]} ${className}`} {...props}>
+      {children}
+    </span>
+  );
+};
+
+// Custom Tabs Components
+const Tabs = ({ children, defaultValue, value, onValueChange, className = '' }) => {
+  const [activeTab, setActiveTab] = useState(value || defaultValue);
+  
+  useEffect(() => {
+    if (value !== undefined) {
+      setActiveTab(value);
+    }
+  }, [value]);
+  
+  const handleTabChange = (newValue) => {
+    setActiveTab(newValue);
+    onValueChange?.(newValue);
+  };
+  
+  return (
+    <div className={className}>
+      {React.Children.map(children, child =>
+        React.cloneElement(child, { activeTab, onTabChange: handleTabChange })
+      )}
+    </div>
+  );
+};
+
+const TabsList = ({ children, activeTab, onTabChange, className = '' }) => (
+  <div className={`inline-flex bg-gray-100 rounded-lg p-1 ${className}`}>
+    {React.Children.map(children, child =>
+      React.cloneElement(child, { activeTab, onTabChange })
+    )}
+  </div>
+);
+
+const TabsTrigger = ({ children, value, activeTab, onTabChange, className = '' }) => {
+  const isActive = activeTab === value;
+  return (
+    <button
+      onClick={() => onTabChange?.(value)}
+      className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${
+        isActive
+          ? 'bg-white text-gray-900 shadow-sm'
+          : 'text-gray-600 hover:text-gray-900'
+      } ${className}`}
+    >
+      {children}
+    </button>
+  );
+};
+
+const TabsContent = ({ children, value, activeTab, className = '' }) => {
+  if (activeTab !== value) return null;
+  return <div className={className}>{children}</div>;
+};
 
 const RNMasteryGame = () => {
-  const [currentQuestion, setCurrentQuestion] = useState(null);
-  const [userAnswer, setUserAnswer] = useState('');
-  const [feedback, setFeedback] = useState('');
-  const [score, setScore] = useState(0);
-  const [questionsAnswered, setQuestionsAnswered] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [gameStarted, setGameStarted] = useState(false);
+  const [gameState, setGameState] = useState('setup');
   const [playerName, setPlayerName] = useState('');
-  const [showNameInput, setShowNameInput] = useState(true);
-  const [leaderboard, setLeaderboard] = useState([]);
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
-  const [userId, setUserId] = useState(null);
-  const [difficulty, setDifficulty] = useState('medium');
-  const [streak, setStreak] = useState(0);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(60);
-  const [isTimerActive, setIsTimerActive] = useState(false);
-  const timerRef = useRef(null);
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [feedback, setFeedback] = useState(null);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [difficulty, setDifficulty] = useState('medium');
 
-  // Authentication
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUserId(user.uid);
-      } else {
-        signInAnonymously(auth).catch((error) => {
-          console.error("Authentication error:", error);
-        });
+  const questions = {
+    easy: [
+      {
+        question: "What does RN stand for in React Native?",
+        options: ["React Native", "Real Number", "Random Node", "Recursive Navigation"],
+        correct: 0,
+        explanation: "RN is the standard abbreviation for React Native, a popular framework for building mobile apps."
+      },
+      {
+        question: "Which company developed React Native?",
+        options: ["Google", "Facebook", "Apple", "Microsoft"],
+        correct: 1,
+        explanation: "Facebook (now Meta) developed React Native and released it as open source in 2015."
+      },
+      {
+        question: "What language is primarily used to write React Native apps?",
+        options: ["Python", "Java", "JavaScript", "Swift"],
+        correct: 2,
+        explanation: "React Native uses JavaScript (and TypeScript) as its primary programming language."
+      },
+      {
+        question: "Which platforms can React Native target?",
+        options: ["iOS only", "Android only", "iOS and Android", "Web only"],
+        correct: 2,
+        explanation: "React Native can build applications for both iOS and Android platforms from a single codebase."
+      },
+      {
+        question: "What is JSX?",
+        options: ["A styling language", "JavaScript XML syntax", "A database", "A testing framework"],
+        correct: 1,
+        explanation: "JSX is a syntax extension for JavaScript that looks similar to XML/HTML and is used in React."
       }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  // Timer effect
-  useEffect(() => {
-    if (isTimerActive && timeLeft > 0) {
-      timerRef.current = setTimeout(() => {
-        setTimeLeft(timeLeft - 1);
-      }, 1000);
-    } else if (timeLeft === 0 && isTimerActive) {
-      handleTimeUp();
-    }
-
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
+    ],
+    medium: [
+      {
+        question: "What is the purpose of useState hook?",
+        options: ["To fetch data", "To manage component state", "To style components", "To navigate screens"],
+        correct: 1,
+        explanation: "useState is a React Hook that allows you to add state management to functional components."
+      },
+      {
+        question: "Which component is used for scrollable content?",
+        options: ["View", "Text", "ScrollView", "Container"],
+        correct: 2,
+        explanation: "ScrollView is the React Native component designed to handle scrollable content."
+      },
+      {
+        question: "What is the bridge in React Native?",
+        options: ["A navigation tool", "Communication layer between JS and native code", "A styling method", "A testing utility"],
+        correct: 1,
+        explanation: "The bridge is the communication layer that allows JavaScript code to interact with native platform code."
+      },
+      {
+        question: "How do you style components in React Native?",
+        options: ["CSS files", "StyleSheet API", "HTML attributes", "Bootstrap"],
+        correct: 1,
+        explanation: "React Native uses the StyleSheet API to create and manage component styles."
+      },
+      {
+        question: "What is React Navigation used for?",
+        options: ["State management", "API calls", "Screen routing", "Animation"],
+        correct: 2,
+        explanation: "React Navigation is the standard library for handling navigation and routing between screens."
       }
-    };
-  }, [timeLeft, isTimerActive]);
-
-  const handleTimeUp = () => {
-    setIsTimerActive(false);
-    setFeedback('Time\'s up! Game over.');
-    endGame();
-  };
-
-  const startGame = () => {
-    if (playerName.trim()) {
-      setShowNameInput(false);
-      setGameStarted(true);
-      setScore(0);
-      setQuestionsAnswered(0);
-      setStreak(0);
-      setTimeLeft(60);
-      setIsTimerActive(true);
-      generateQuestion();
-    }
-  };
-
-  const generateQuestion = async () => {
-    setIsLoading(true);
-    setFeedback('');
-    setUserAnswer('');
-
-    const topics = [
-      'medication administration',
-      'patient assessment',
-      'infection control',
-      'IV therapy',
-      'wound care',
-      'pharmacology',
-      'vital signs',
-      'patient safety',
-      'documentation',
-      'ethics in nursing'
-    ];
-
-    const randomTopic = topics[Math.floor(Math.random() * topics.length)];
-    
-    const difficultyPrompts = {
-      easy: 'Generate a basic nursing question about',
-      medium: 'Generate an intermediate nursing question about',
-      hard: 'Generate an advanced NCLEX-style nursing question about'
-    };
-
-    const prompt = `${difficultyPrompts[difficulty]} ${randomTopic}. 
-    Format your response as:
-    Question: [the question]
-    Options:
-    A) [option]
-    B) [option]
-    C) [option]
-    D) [option]
-    Correct Answer: [letter]
-    Explanation: [brief explanation]`;
-
-    try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=AIzaSyBHH5P9kgWtRJ8KLmfD6qRoY1pvPUKOzOo`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: prompt,
-                  },
-                ],
-              },
-            ],
-          }),
-        }
-      );
-
-      const data = await response.json();
-      const generatedText = data.candidates[0].content.parts[0].text;
-      
-      const questionMatch = generatedText.match(/Question:(.*?)(?=Options:|$)/s);
-      const optionsMatch = generatedText.match(/Options:(.*?)(?=Correct Answer:|$)/s);
-      const answerMatch = generatedText.match(/Correct Answer:\s*([A-D])/i);
-      const explanationMatch = generatedText.match(/Explanation:(.*?)$/s);
-
-      if (questionMatch && optionsMatch && answerMatch) {
-        setCurrentQuestion({
-          question: questionMatch[1].trim(),
-          options: optionsMatch[1].trim(),
-          correctAnswer: answerMatch[1].toUpperCase(),
-          explanation: explanationMatch ? explanationMatch[1].trim() : 'No explanation provided.'
-        });
-      } else {
-        throw new Error('Failed to parse question format');
+    ],
+    hard: [
+      {
+        question: "What is the new architecture in React Native called?",
+        options: ["Turbo Modules", "Fabric", "Both A and B", "Metro"],
+        correct: 2,
+        explanation: "The new architecture includes both Fabric (new rendering system) and Turbo Modules (new native modules system)."
+      },
+      {
+        question: "What is Hermes?",
+        options: ["A UI library", "A JavaScript engine", "A state manager", "A testing tool"],
+        correct: 1,
+        explanation: "Hermes is an optimized JavaScript engine specifically designed for React Native applications."
+      },
+      {
+        question: "What does useCallback optimize?",
+        options: ["Component rendering", "Function reference stability", "Memory usage", "Network requests"],
+        correct: 1,
+        explanation: "useCallback memoizes function references, preventing unnecessary re-creations and re-renders."
+      },
+      {
+        question: "What is the purpose of FlatList over ScrollView?",
+        options: ["Better styling", "Performance with large lists", "Easier syntax", "More animations"],
+        correct: 1,
+        explanation: "FlatList uses virtualization to efficiently render large lists by only rendering visible items."
+      },
+      {
+        question: "What is Codegen in React Native?",
+        options: ["A bundler", "Auto-generates native code from JS specs", "A debugger", "A linting tool"],
+        correct: 1,
+        explanation: "Codegen automatically generates native code interfaces from JavaScript specifications in the new architecture."
       }
-    } catch (error) {
-      console.error('Error generating question:', error);
-      setFeedback('Error generating question. Please try again.');
-    }
-
-    setIsLoading(false);
+    ]
   };
 
-  const handleSubmit = () => {
-    if (!userAnswer) {
-      setFeedback('Please select an answer!');
-      return;
-    }
-
-    const isCorrect = userAnswer.toUpperCase() === currentQuestion.correctAnswer;
-    
-    if (isCorrect) {
-      const points = difficulty === 'easy' ? 10 : difficulty === 'medium' ? 20 : 30;
-      const bonusPoints = streak >= 3 ? 10 : 0;
-      setScore(score + points + bonusPoints);
-      setStreak(streak + 1);
-      setFeedback(`✅ Correct! +${points + bonusPoints} points${bonusPoints > 0 ? ' (Streak bonus!)' : ''}\n\n${currentQuestion.explanation}`);
-    } else {
-      setStreak(0);
-      setFeedback(`❌ Incorrect. The correct answer was ${currentQuestion.correctAnswer}.\n\n${currentQuestion.explanation}`);
-    }
-
-    setQuestionsAnswered(questionsAnswered + 1);
-    setTimeLeft(timeLeft + 10); // Bonus time for answering
-  };
-
-  const nextQuestion = () => {
-    if (questionsAnswered < 10) {
-      generateQuestion();
-    } else {
-      endGame();
-    }
-  };
-
-  const endGame = async () => {
-    setIsTimerActive(false);
-    setGameStarted(false);
-    
-    if (userId && playerName && score > 0) {
-      try {
-        await addDoc(collection(db, 'leaderboard'), {
-          playerName: playerName,
-          score: score,
-          questionsAnswered: questionsAnswered,
-          difficulty: difficulty,
-          timestamp: serverTimestamp(),
-          userId: userId
-        });
-        
-        await loadLeaderboard();
-        setShowLeaderboard(true);
-      } catch (error) {
-        console.error('Error saving score:', error);
-      }
-    }
-  };
-
-  const loadLeaderboard = async () => {
+  const fetchLeaderboard = useCallback(async () => {
     try {
       const q = query(
         collection(db, 'leaderboard'),
         orderBy('score', 'desc'),
         limit(10)
       );
-      
       const querySnapshot = await getDocs(q);
-      const scores = [];
-      querySnapshot.forEach((doc) => {
-        scores.push({ id: doc.id, ...doc.data() });
-      });
-      
+      const scores = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
       setLeaderboard(scores);
     } catch (error) {
-      console.error('Error loading leaderboard:', error);
+      console.error('Error fetching leaderboard:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLeaderboard();
+  }, [fetchLeaderboard]);
+
+  useEffect(() => {
+    if (gameState === 'playing' && timeLeft > 0) {
+      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (timeLeft === 0 && gameState === 'playing') {
+      endGame();
+    }
+  }, [timeLeft, gameState]);
+
+  const startGame = () => {
+    if (!playerName.trim()) {
+      alert('Please enter your name');
+      return;
+    }
+    setGameState('playing');
+    setCurrentQuestion(0);
+    setScore(0);
+    setTimeLeft(60);
+    setSelectedAnswer(null);
+    setFeedback(null);
+  };
+
+  const handleAnswer = (answerIndex) => {
+    if (selectedAnswer !== null) return;
+    
+    setSelectedAnswer(answerIndex);
+    const isCorrect = answerIndex === questions[difficulty][currentQuestion].correct;
+    
+    if (isCorrect) {
+      const points = difficulty === 'easy' ? 10 : difficulty === 'medium' ? 20 : 30;
+      setScore(score + points);
+      setFeedback({ type: 'success', message: 'Correct! ' + questions[difficulty][currentQuestion].explanation });
+    } else {
+      setFeedback({ type: 'error', message: 'Wrong! ' + questions[difficulty][currentQuestion].explanation });
+    }
+
+    setTimeout(() => {
+      if (currentQuestion < questions[difficulty].length - 1) {
+        setCurrentQuestion(currentQuestion + 1);
+        setSelectedAnswer(null);
+        setFeedback(null);
+      } else {
+        endGame();
+      }
+    }, 2000);
+  };
+
+  const endGame = async () => {
+    setGameState('ended');
+    try {
+      await addDoc(collection(db, 'leaderboard'), {
+        playerName,
+        score,
+        difficulty,
+        timestamp: new Date()
+      });
+      await fetchLeaderboard();
+    } catch (error) {
+      console.error('Error saving score:', error);
     }
   };
 
   const resetGame = () => {
-    setShowNameInput(true);
-    setShowLeaderboard(false);
+    setGameState('setup');
+    setPlayerName('');
+    setCurrentQuestion(0);
     setScore(0);
-    setQuestionsAnswered(0);
-    setStreak(0);
-    setCurrentQuestion(null);
-    setFeedback('');
-    setUserAnswer('');
     setTimeLeft(60);
-    setIsTimerActive(false);
+    setSelectedAnswer(null);
+    setFeedback(null);
   };
 
-  if (showNameInput) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-3xl text-center">🏥 RN Mastery Challenge</CardTitle>
-            <CardDescription className="text-center">
-              Test your nursing knowledge with AI-generated questions!
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Your Name</label>
-              <input
-                type="text"
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter your name"
-                onKeyPress={(e) => e.key === 'Enter' && startGame()}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Difficulty</label>
-              <select
-                value={difficulty}
-                onChange={(e) => setDifficulty(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="easy">Easy (10 pts)</option>
-                <option value="medium">Medium (20 pts)</option>
-                <option value="hard">Hard (30 pts)</option>
-              </select>
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-2">
-            <Button 
-              onClick={startGame} 
-              className="w-full"
-              disabled={!playerName.trim()}
+  const renderSetup = () => (
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle>React Native Mastery Quiz</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Your Name
+          </label>
+          <Input
+            type="text"
+            placeholder="Enter your name"
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Difficulty Level
+          </label>
+          <div className="flex gap-2">
+            <Button
+              variant={difficulty === 'easy' ? 'default' : 'outline'}
+              onClick={() => setDifficulty('easy')}
+              className="flex-1"
             >
-              Start Game
+              Easy (10 pts)
             </Button>
-            <Button 
-              onClick={() => {
-                loadLeaderboard();
-                setShowLeaderboard(true);
-              }} 
-              variant="outline"
-              className="w-full"
+            <Button
+              variant={difficulty === 'medium' ? 'default' : 'outline'}
+              onClick={() => setDifficulty('medium')}
+              className="flex-1"
             >
-              View Leaderboard
+              Medium (20 pts)
             </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
-
-  if (showLeaderboard) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 flex items-center justify-center">
-        <Card className="w-full max-w-2xl">
-          <CardHeader>
-            <CardTitle className="text-3xl text-center">🏆 Leaderboard</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {leaderboard.map((entry, index) => (
-                <div
-                  key={entry.id}
-                  className="flex items-center justify-between p-4 bg-white rounded-lg shadow"
-                >
-                  <div className="flex items-center gap-4">
-                    <span className="text-2xl font-bold text-gray-400">
-                      #{index + 1}
-                    </span>
-                    <div>
-                      <p className="font-semibold">{entry.playerName}</p>
-                      <p className="text-sm text-gray-500">
-                        {entry.questionsAnswered} questions · {entry.difficulty}
-                      </p>
-                    </div>
-                  </div>
-                  <Badge className="text-lg px-4 py-2">
-                    {entry.score} pts
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button onClick={resetGame} className="w-full">
-              Back to Menu
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!gameStarted) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-2xl text-center">Game Over!</CardTitle>
-          </CardHeader>
-          <CardContent className="text-center space-y-4">
-            <div>
-              <p className="text-5xl font-bold text-blue-600">{score}</p>
-              <p className="text-gray-600">Final Score</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-2xl font-bold">{questionsAnswered}</p>
-                <p className="text-sm text-gray-600">Questions</p>
-              </div>
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-2xl font-bold">{difficulty}</p>
-                <p className="text-sm text-gray-600">Difficulty</p>
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-2">
-            <Button onClick={resetGame} className="w-full">
-              Play Again
-            </Button>
-            <Button 
-              onClick={() => {
-                loadLeaderboard();
-                setShowLeaderboard(true);
-              }}
-              variant="outline"
-              className="w-full"
+            <Button
+              variant={difficulty === 'hard' ? 'default' : 'outline'}
+              onClick={() => setDifficulty('hard')}
+              className="flex-1"
             >
-              View Leaderboard
+              Hard (30 pts)
             </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Game Header */}
-        <div className="mb-4 flex justify-between items-center bg-white p-4 rounded-lg shadow">
-          <div className="flex gap-4">
-            <div>
-              <p className="text-sm text-gray-600">Score</p>
-              <p className="text-2xl font-bold text-blue-600">{score}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Question</p>
-              <p className="text-2xl font-bold">{questionsAnswered}/10</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Streak</p>
-              <p className="text-2xl font-bold text-orange-600">{streak}🔥</p>
-            </div>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">Time</p>
-            <p className={`text-2xl font-bold ${timeLeft < 20 ? 'text-red-600' : 'text-green-600'}`}>
-              {timeLeft}s
-            </p>
           </div>
         </div>
 
-        {/* Main Game Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Question {questionsAnswered + 1}</CardTitle>
-            <CardDescription>
-              Difficulty: <Badge>{difficulty}</Badge>
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {isLoading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-4 text-gray-600">Generating question...</p>
-              </div>
-            ) : currentQuestion ? (
-              <>
-                <div className="prose max-w-none">
-                  <p className="text-lg font-medium">{currentQuestion.question}</p>
-                </div>
-                
-                <div className="space-y-2">
-                  {currentQuestion.options.split('\n').filter(opt => opt.trim()).map((option, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setUserAnswer(option.trim()[0])}
-                      className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
-                        userAnswer === option.trim()[0]
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      disabled={!!feedback}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
+        <Alert>
+          <AlertDescription>
+            You'll have 60 seconds to answer {questions[difficulty].length} questions. Each correct answer gives you points based on difficulty level.
+          </AlertDescription>
+        </Alert>
 
-                {feedback && (
-                  <Alert>
-                    <AlertDescription className="whitespace-pre-line">
-                      {feedback}
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </>
-            ) : null}
-          </CardContent>
-          <CardFooter className="flex gap-2">
-            {!feedback ? (
-              <Button 
-                onClick={handleSubmit} 
-                className="w-full"
-                disabled={!userAnswer || isLoading}
+        <Button onClick={startGame} className="w-full">
+          Start Game
+        </Button>
+      </CardContent>
+    </Card>
+  );
+
+  const renderGame = () => (
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <CardTitle>Question {currentQuestion + 1}/{questions[difficulty].length}</CardTitle>
+          <div className="flex gap-4 items-center">
+            <Badge variant="secondary">Score: {score}</Badge>
+            <Badge variant={timeLeft < 10 ? 'destructive' : 'default'}>
+              Time: {timeLeft}s
+            </Badge>
+          </div>
+        </div>
+        <div className="mt-4">
+          <Progress value={(currentQuestion / questions[difficulty].length) * 100} />
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <h3 className="text-xl font-semibold text-gray-900">
+          {questions[difficulty][currentQuestion].question}
+        </h3>
+        
+        <div className="space-y-2">
+          {questions[difficulty][currentQuestion].options.map((option, index) => (
+            <Button
+              key={index}
+              onClick={() => handleAnswer(index)}
+              disabled={selectedAnswer !== null}
+              variant="outline"
+              className={`w-full text-left justify-start h-auto py-3 ${
+                selectedAnswer === index
+                  ? index === questions[difficulty][currentQuestion].correct
+                    ? 'bg-green-100 border-green-500 hover:bg-green-100'
+                    : 'bg-red-100 border-red-500 hover:bg-red-100'
+                  : ''
+              }`}
+            >
+              {option}
+            </Button>
+          ))}
+        </div>
+
+        {feedback && (
+          <Alert variant={feedback.type === 'success' ? 'success' : 'destructive'}>
+            <AlertDescription>{feedback.message}</AlertDescription>
+          </Alert>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  const renderEnd = () => (
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle>Game Over!</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="text-center py-6">
+          <h3 className="text-4xl font-bold text-gray-900 mb-2">{score} Points</h3>
+          <p className="text-lg text-gray-600">
+            Great job, {playerName}! You answered {Math.round((score / (questions[difficulty].length * (difficulty === 'easy' ? 10 : difficulty === 'medium' ? 20 : 30))) * 100)}% correctly.
+          </p>
+        </div>
+
+        <div className="flex gap-2">
+          <Button onClick={resetGame} className="flex-1">
+            Play Again
+          </Button>
+          <Button onClick={fetchLeaderboard} variant="outline" className="flex-1">
+            Refresh Leaderboard
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const renderLeaderboard = () => (
+    <Card className="w-full max-w-2xl mx-auto mt-6">
+      <CardHeader>
+        <CardTitle>Leaderboard</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {leaderboard.length === 0 ? (
+          <p className="text-center text-gray-500 py-4">No scores yet. Be the first to play!</p>
+        ) : (
+          <div className="space-y-2">
+            {leaderboard.map((entry, index) => (
+              <div
+                key={entry.id}
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
               >
-                Submit Answer
-              </Button>
-            ) : (
-              <Button 
-                onClick={nextQuestion} 
-                className="w-full"
-              >
-                {questionsAnswered < 10 ? 'Next Question' : 'Finish Game'}
-              </Button>
-            )}
-          </CardFooter>
-        </Card>
+                <div className="flex items-center gap-3">
+                  <span className="text-lg font-bold text-gray-600 w-8">#{index + 1}</span>
+                  <div>
+                    <p className="font-semibold text-gray-900">{entry.playerName}</p>
+                    <p className="text-sm text-gray-500 capitalize">{entry.difficulty}</p>
+                  </div>
+                </div>
+                <Badge className="text-lg">{entry.score} pts</Badge>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+      <div className="max-w-4xl mx-auto">
+        {gameState === 'setup' && renderSetup()}
+        {gameState === 'playing' && renderGame()}
+        {gameState === 'ended' && renderEnd()}
+        {renderLeaderboard()}
       </div>
     </div>
   );
