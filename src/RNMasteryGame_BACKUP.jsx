@@ -1,9 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Bug, Bone, Activity, AlertCircle, Brain, Trophy, ArrowRight, CheckCircle, XCircle, Flame, Split, Loader2, Sparkles, Target, Crown, Lock, GraduationCap, Save, Download } from 'lucide-react';
+import { Shield, Bug, Bone, Activity, AlertCircle, Brain } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "firebase/auth";
 import { getFirestore, collection, addDoc, onSnapshot, query, limit, serverTimestamp, getDocs, where } from "firebase/firestore";
+
+// Import components
+import ChapterSelector from './components/ChapterSelector';
+import Question from './components/Question';
+import ScoreBoard from './components/ScoreBoard';
+import ProgressBar from './components/ProgressBar';
+import Summary from './components/Summary';
+import Leaderboard from './components/Leaderboard';
+import ExitConfirmModal from './components/ExitConfirmModal';
+import ModeSelector from './components/ModeSelector';
 
 // Import tag overlay system and modes engine
 import { enrichQuestions, getExamTip } from './questionTags/index';
@@ -39,7 +49,7 @@ const callGemini = async (prompt) => {
 
 // --- FIREBASE SETUP ---
 let db, auth;
-let appId = 'rn-mastery-game';
+let appId = 'default-app-id';
 try {
   const firebaseConfig = JSON.parse(window.__firebase_config || '{}');
   const app = initializeApp(firebaseConfig);
@@ -1153,56 +1163,59 @@ const INITIAL_DATA = [
 ];
 
 export default function RNMasteryGame() {
-  // Core Game State
   const [gameState, setGameState] = useState('menu'); 
-  const [gameMode, setGameMode] = useState('study'); // 'study' or 'ranked'
   const [activeChapter, setActiveChapter] = useState(null);
-  const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
   const [showRationale, setShowRationale] = useState(false);
-  
-  // Scoring & Stats
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
+  const [riskMode, setRiskMode] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState('');
   const [correctCount, setCorrectCount] = useState(0);
   const [incorrectCount, setIncorrectCount] = useState(0);
-  const [missedQuestions, setMissedQuestions] = useState([]);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [leaderboardFilter, setLeaderboardFilter] = useState('all');
   
-  // New Features
+  // New Feature States
   const [fiftyFiftyUsed, setFiftyFiftyUsed] = useState(false);
   const [hiddenOptions, setHiddenOptions] = useState([]);
-  const [confidence, setConfidence] = useState(null);
+  const [missedQuestions, setMissedQuestions] = useState([]);
   
-  // Weakness & Analytics Tracking
+  // Weakness Tracking States
   const [weaknessStats, setWeaknessStats] = useState(() => {
     const saved = localStorage.getItem('rnMasteryWeakness');
     return saved ? JSON.parse(saved) : { missedBySkill: {}, missedByConcept: {}, missedByBloom: {} };
   });
   
+  // Mode & Confidence States
+  const [currentMode, setCurrentMode] = useState(null);
+  const [confidence, setConfidence] = useState(null);
   const [analytics, setAnalytics] = useState(() => {
     const saved = localStorage.getItem('rnMasteryAnalytics');
     return saved ? JSON.parse(saved) : {
       totalAttempts: 0,
       correctCount: 0,
       missedCount: 0,
-      confidenceStats: { sureCorrect: 0, sureWrong: 0, guessCorrect: 0, guessWrong: 0 }
+      confidenceStats: {
+        sureCorrect: 0,
+        sureWrong: 0,
+        guessCorrect: 0,
+        guessWrong: 0
+      }
     };
   });
   
   // AI States
   const [aiExplanation, setAiExplanation] = useState(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const [aiStudyGuide, setAiStudyGuide] = useState(null);
-  const [isGuideLoading, setIsGuideLoading] = useState(false);
   
-  // Firebase States
+  // Firebase
   const [user, setUser] = useState(null);
   const [playerName, setPlayerName] = useState('');
   const [isSubmittingScore, setIsSubmittingScore] = useState(false);
   const [submittedChapters, setSubmittedChapters] = useState([]);
 
-  // --- FIREBASE AUTH & DATA LOADING ---
   useEffect(() => {
     const initAuth = async () => {
       if (!auth) return;
@@ -1213,10 +1226,10 @@ export default function RNMasteryGame() {
       }
     };
     initAuth();
-    
     if (auth) return onAuthStateChanged(auth, async (u) => {
       setUser(u);
-      if (u && db) {
+      if (u) {
+        // Fetch submitted chapters for ranked mode
         try {
           const q = query(
             collection(db, 'artifacts', appId, 'public', 'data', 'scores'),
@@ -1232,131 +1245,241 @@ export default function RNMasteryGame() {
     });
   }, []);
 
-  // --- GAME LOGIC ---
-  const startChapter = (chapter, mode = MODES.CHAPTER_REVIEW) => {
-    // Get all enriched questions from the existing data structure
-    const allQuestions = INITIAL_DATA.flatMap(ch => enrichQuestions(ch.questions));
-    const pool = getPool(allQuestions, mode, chapter.id);
-    
-    if (pool.length === 0) {
-      alert("No questions found for this selection.");
-      return;
+  // Load saved progress on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('rnMasteryProgress');
+    if (saved && gameState === 'playing') {
+      try {
+        const data = JSON.parse(saved);
+        if (data.chapterId === activeChapter?.id) {
+          // Resume confirmation could go here
+        }
+      } catch (e) {
+        console.error('Error loading progress:', e);
+      }
     }
+  }, [gameState, activeChapter]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (gameState !== 'playing' || showRationale) return;
+      
+      const key = e.key;
+      if (['1', '2', '3', '4'].includes(key)) {
+        const index = parseInt(key) - 1;
+        if (index < activeChapter.questions[currentQuestionIndex].options.length) {
+          setSelectedOption(index);
+        }
+      } else if (key === 'Enter' && selectedOption !== null) {
+        if (showRationale) {
+          nextQuestion();
+        } else {
+          submitAnswer();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState, showRationale, selectedOption, activeChapter, currentQuestionIndex]);
+
+  // --- LOGIC ---
+  
+  // Fisher-Yates shuffle algorithm
+  const shuffleArray = (array) => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+  
+  const startChapter = (chapter) => {
+    // Enrich questions with metadata tags
+    const enrichedChapter = {
+      ...chapter,
+      questions: enrichQuestions(chapter.questions)
+    };
     
-    setActiveChapter(chapter);
-    setQuestions(pool.sort(() => 0.5 - Math.random()));
+    // Shuffle questions for randomization
+    const shuffledChapter = {
+      ...enrichedChapter,
+      questions: shuffleArray(enrichedChapter.questions)
+    };
+    
+    setActiveChapter(shuffledChapter);
+    setCurrentMode(null);
     setCurrentQuestionIndex(0);
     setScore(0);
     setStreak(0);
     setCorrectCount(0);
     setIncorrectCount(0);
     setMissedQuestions([]);
-    setGameState('playing');
-    resetTurn();
-  };
-
-  const resetTurn = () => {
-    setSelectedOption(null);
-    setConfidence(null);
-    setShowRationale(false);
-    setAiExplanation(null);
     setFiftyFiftyUsed(false);
     setHiddenOptions([]);
+    setConfidence(null);
+    setGameState('playing');
+    setSelectedOption(null);
+    setShowRationale(false);
+    setAiExplanation(null);
+    setFeedbackMessage('');
+    setRiskMode(false);
   };
 
-  const useFiftyFifty = () => {
-    if (fiftyFiftyUsed || showRationale) return;
-    const q = questions[currentQuestionIndex];
-    const incorrectIndices = q.options.map((_, i) => i).filter(i => i !== q.correctIndex);
-    const toHide = incorrectIndices.sort(() => Math.random() - 0.5).slice(0, 2);
-    setHiddenOptions(toHide);
-    setFiftyFiftyUsed(true);
+  const startMode = (mode, chapterId) => {
+    // Get all questions from all chapters and enrich with tags
+    const allQuestions = INITIAL_DATA.flatMap(ch => 
+      enrichQuestions(ch.questions)
+    );
+    
+    // Get filtered pool based on selected mode
+    const missedIds = missedQuestions.map(mq => mq.question.id);
+    const pool = getPool(allQuestions, mode, { chapterId, missedIds });
+    
+    if (pool.length === 0) {
+      alert('No questions available for this mode!');
+      return;
+    }
+    
+    // Find mode info for display
+    const { MODE_INFO } = require('./modes');
+    const modeInfo = MODE_INFO[mode];
+    
+    // Create virtual chapter with filtered questions
+    const modeChapter = {
+      id: chapterId || mode,
+      title: modeInfo.title,
+      icon: modeInfo.icon,
+      description: modeInfo.description,
+      questions: shuffleArray(pool)
+    };
+    
+    setActiveChapter(modeChapter);
+    setCurrentMode(mode);
+    setCurrentQuestionIndex(0);
+    setScore(0);
+    setStreak(0);
+    setCorrectCount(0);
+    setIncorrectCount(0);
+    setMissedQuestions([]);
+    setFiftyFiftyUsed(false);
+    setHiddenOptions([]);
+    setConfidence(null);
+    setGameState('playing');
+    setSelectedOption(null);
+    setShowRationale(false);
+    setAiExplanation(null);
+    setFeedbackMessage('');
+    setRiskMode(false);
   };
 
-  const handleAnswer = (optionIndex, confLevel) => {
-    setSelectedOption(optionIndex);
-    setConfidence(confLevel);
+  const getMultiplier = () => {
+    if (streak >= 10) return 3;
+    if (streak >= 5) return 2;
+    if (streak >= 3) return 1.5;
+    return 1;
+  };
+
+  const getPersonalBest = (chapterId) => {
+    const bests = JSON.parse(localStorage.getItem('rnMasteryBests') || '{}');
+    return bests[chapterId] || 0;
+  };
+
+  const savePersonalBest = (chapterId, score) => {
+    const bests = JSON.parse(localStorage.getItem('rnMasteryBests') || '{}');
+    if (score > (bests[chapterId] || 0)) {
+      bests[chapterId] = score;
+      localStorage.setItem('rnMasteryBests', JSON.stringify(bests));
+      return true; // New record!
+    }
+    return false;
+  };
+
+  const submitAnswer = () => {
+    if (selectedOption === null) return;
+    const currentQuestion = activeChapter.questions[currentQuestionIndex];
+    const isCorrect = selectedOption === currentQuestion.correctIndex;
     
-    const q = questions[currentQuestionIndex];
-    const isCorrect = optionIndex === q.correctIndex;
-    
-    // Calculate points
-    let points = 0;
     if (isCorrect) {
       setCorrectCount(correctCount + 1);
-      if (gameMode === 'ranked') {
-        points = confLevel === 'SURE' ? 150 : 100;
-        points += streak * 50; // Streak bonus
-      }
+      const basePoints = 100;
+      const multiplier = getMultiplier();
+      let totalPoints = basePoints * multiplier;
+      
+      if (riskMode) totalPoints *= 2; // Double points for Risk
+      
+      setScore(Math.floor(score + totalPoints));
       setStreak(streak + 1);
+      setFeedbackMessage(riskMode ? "RISK PAID OFF! 🚀" : "Correct!");
     } else {
       setIncorrectCount(incorrectCount + 1);
       setStreak(0);
       
-      // Track missed question
+      // Track missed question for review
       setMissedQuestions([...missedQuestions, {
-        question: q,
-        selectedAnswer: optionIndex,
+        question: currentQuestion,
+        selectedAnswer: selectedOption,
         questionNumber: currentQuestionIndex + 1
       }]);
       
       // Update weakness stats
-      if (q.skill || q.concept) {
+      if (currentQuestion.skill || currentQuestion.concept) {
         const newWeakness = { ...weaknessStats };
         
-        if (Array.isArray(q.skill)) {
-          q.skill.forEach(skill => {
+        // Track by skill
+        if (Array.isArray(currentQuestion.skill)) {
+          currentQuestion.skill.forEach(skill => {
             newWeakness.missedBySkill = newWeakness.missedBySkill || {};
             newWeakness.missedBySkill[skill] = (newWeakness.missedBySkill[skill] || 0) + 1;
           });
         }
         
-        if (q.concept) {
+        // Track by concept
+        if (currentQuestion.concept) {
           newWeakness.missedByConcept = newWeakness.missedByConcept || {};
-          newWeakness.missedByConcept[q.concept] = (newWeakness.missedByConcept[q.concept] || 0) + 1;
+          newWeakness.missedByConcept[currentQuestion.concept] = 
+            (newWeakness.missedByConcept[currentQuestion.concept] || 0) + 1;
         }
         
-        if (q.bloom) {
+        // Track by Bloom level
+        if (currentQuestion.bloom) {
           newWeakness.missedByBloom = newWeakness.missedByBloom || {};
-          newWeakness.missedByBloom[q.bloom] = (newWeakness.missedByBloom[q.bloom] || 0) + 1;
+          newWeakness.missedByBloom[currentQuestion.bloom] = 
+            (newWeakness.missedByBloom[currentQuestion.bloom] || 0) + 1;
         }
         
         setWeaknessStats(newWeakness);
         localStorage.setItem('rnMasteryWeakness', JSON.stringify(newWeakness));
       }
-    }
-    
-    setScore(score + points);
-    
-    // Update analytics
-    const category = confLevel === 'SURE' 
-      ? (isCorrect ? 'sureCorrect' : 'sureWrong')
-      : (isCorrect ? 'guessCorrect' : 'guessWrong');
-    
-    const newAnalytics = {
-      ...analytics,
-      totalAttempts: analytics.totalAttempts + 1,
-      correctCount: analytics.correctCount + (isCorrect ? 1 : 0),
-      missedCount: analytics.missedCount + (isCorrect ? 0 : 1),
-      confidenceStats: {
-        ...analytics.confidenceStats,
-        [category]: analytics.confidenceStats[category] + 1
+      
+      if (riskMode) {
+        setScore(Math.max(0, score - 500)); // Lose 500 for failed risk
+        setFeedbackMessage("Risk Failed! -500 pts 😱");
+      } else {
+        setFeedbackMessage("Incorrect");
       }
-    };
-    setAnalytics(newAnalytics);
-    localStorage.setItem('rnMasteryAnalytics', JSON.stringify(newAnalytics));
-    
+    }
     setShowRationale(true);
   };
 
   const nextQuestion = () => {
-    if (currentQuestionIndex < questions.length - 1) {
+    if (currentQuestionIndex < activeChapter.questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
-      resetTurn();
+      setSelectedOption(null);
+      setShowRationale(false);
+      setAiExplanation(null);
+      setFeedbackMessage('');
+      setRiskMode(false);
+      setConfidence(null);
+      setHiddenOptions([]); // Reset hidden options for new question
     } else {
-      // End of quiz - trigger confetti for good scores
-      const percentage = Math.round((correctCount / questions.length) * 100);
+      const isNewRecord = savePersonalBest(activeChapter.id, score);
+      const percentage = Math.round((correctCount / activeChapter.questions.length) * 100);
       
+      // Victory confetti for good scores (70% or higher)
       if (percentage >= 70) {
         confetti({
           particleCount: 100,
@@ -1364,7 +1487,7 @@ export default function RNMasteryGame() {
           origin: { y: 0.6 },
           colors: ['#FFD700', '#FFA500', '#FF6B6B', '#4ECDC4', '#45B7D1']
         });
-        
+        // Extra confetti for perfect scores
         if (percentage === 100) {
           setTimeout(() => {
             confetti({
@@ -1377,548 +1500,281 @@ export default function RNMasteryGame() {
         }
       }
       
+      if (isNewRecord) {
+        setFeedbackMessage('🎉 NEW PERSONAL BEST!');
+      }
       setGameState('summary');
     }
   };
 
+  const handleExit = () => {
+    if (gameState === 'playing' && currentQuestionIndex > 0) {
+      setShowExitConfirm(true);
+    } else {
+      setGameState('menu');
+    }
+  };
+
+  const confirmExit = () => {
+    setShowExitConfirm(false);
+    setGameState('menu');
+  };
+
+  const saveScoreToLeaderboard = async () => {
+      if (!user || !playerName.trim()) return;
+      setIsSubmittingScore(true);
+      try {
+          await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'scores'), {
+              playerName: playerName.trim(),
+              score: score,
+              chapterTitle: activeChapter.title,
+              rank: getRank(score),
+              timestamp: serverTimestamp(),
+              uid: user.uid
+          });
+          // Update local submitted chapters list
+          if (!submittedChapters.includes(activeChapter.title)) {
+            setSubmittedChapters([...submittedChapters, activeChapter.title]);
+          }
+          setIsSubmittingScore(false);
+          setGameState('leaderboard');
+      } catch (error) {
+          console.error("Error saving score:", error);
+          setIsSubmittingScore(false);
+      }
+  };
+
   const getRank = (s) => {
     if (s < 1000) return "Novice";
-    if (s < 2000) return "Apprentice";
-    if (s < 3000) return "Expert RN";
+    if (s < 2500) return "Apprentice";
+    if (s < 4000) return "Expert RN";
     return "Clinical Legend 👑";
+  };
+
+  const use50_50 = () => {
+    if (fiftyFiftyUsed || showRationale) return;
+    
+    const currentQuestion = activeChapter.questions[currentQuestionIndex];
+    const correctIndex = currentQuestion.correctIndex;
+    
+    // Get all incorrect answer indices
+    const incorrectIndices = currentQuestion.options
+      .map((_, idx) => idx)
+      .filter(idx => idx !== correctIndex);
+    
+    // Randomly select 2 incorrect answers to hide
+    const shuffledIncorrect = incorrectIndices.sort(() => Math.random() - 0.5);
+    const toHide = shuffledIncorrect.slice(0, 2);
+    
+    setHiddenOptions(toHide);
+    setFiftyFiftyUsed(true);
   };
 
   const handleAiTutor = async () => {
     setIsAiLoading(true);
-    const q = questions[currentQuestionIndex];
-    const prompt = `Context: Nursing Student Game - Clinical Pearls Focus. Question: "${q.text}". Answer: "${q.options[q.correctIndex]}". Rationale: "${q.rationale}". Task: Give a very short, memorable mnemonic AND a clinical pearl (real-world nursing insight) to help remember this concept in practice.`;
+    const q = activeChapter.questions[currentQuestionIndex];
+    const prompt = `Context: Nursing Student Game - Clinical Pearls Focus. Question: "${q.text}". Answer: "${q.options[q.correctIndex]}". Rationale: "${q.rationale}". Task: Give a very short, memorable mnemonic AND a clinical pearl (real-world nursing insight or case study tip) to help remember this concept in practice.`;
     const text = await callGemini(prompt);
     setAiExplanation(text);
     setIsAiLoading(false);
   };
 
-  const handleGenerateStudyGuide = async () => {
-    setIsGuideLoading(true);
-    const prompt = `Create a high-yield study guide for: "${activeChapter.title}". Include key concepts, clinical pearls, and NCLEX-style tips. Keep it concise (300 words max).`;
-    const text = await callGemini(prompt);
-    setAiStudyGuide(text);
-    setIsGuideLoading(false);
-  };
-
-  const downloadStudyGuide = () => {
-    if (!aiStudyGuide) return;
+  const handleConfidenceSelect = (conf) => {
+    setConfidence(conf);
     
-    const content = `AI STUDY GUIDE - ${activeChapter.title}
-Generated: ${new Date().toLocaleString()}
-
-==============================================
-CHAPTER SUMMARY
-==============================================
-${activeChapter.title}
-Score: ${score} | Accuracy: ${Math.round((correctCount / questions.length) * 100)}%
-Questions Correct: ${correctCount}/${questions.length}
-
-==============================================
-AI-GENERATED STUDY NOTES
-==============================================
-
-${aiStudyGuide}
-
-==============================================
-MISSED QUESTIONS REVIEW
-==============================================
-
-${missedQuestions.length > 0 ? missedQuestions.map((missed, idx) => `
-Question ${missed.questionNumber}:
-${missed.question.text}
-
-Your Answer: ${missed.question.options[missed.selectedAnswer]}
-Correct Answer: ${missed.question.options[missed.question.correctIndex]}
-
-Rationale: ${missed.question.rationale}
-
----
-`).join('\n') : 'No missed questions - Perfect score!'}
-
-==============================================
-`;
-
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${activeChapter.title.replace(/\s+/g, '_')}_Study_Guide.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const currentQuestion = activeChapter.questions[currentQuestionIndex];
+    const isCorrect = selectedOption === currentQuestion.correctIndex;
+    
+    // Determine which confidence category
+    const key = conf === 'SURE' 
+      ? (isCorrect ? 'sureCorrect' : 'sureWrong')
+      : (isCorrect ? 'guessCorrect' : 'guessWrong');
+    
+    // Update analytics
+    const newAnalytics = {
+      ...analytics,
+      totalAttempts: analytics.totalAttempts + 1,
+      correctCount: isCorrect ? analytics.correctCount + 1 : analytics.correctCount,
+      missedCount: isCorrect ? analytics.missedCount : analytics.missedCount + 1,
+      confidenceStats: {
+        ...analytics.confidenceStats,
+        [key]: analytics.confidenceStats[key] + 1
+      }
+    };
+    
+    setAnalytics(newAnalytics);
+    localStorage.setItem('rnMasteryAnalytics', JSON.stringify(newAnalytics));
   };
 
-  const saveScoreToLeaderboard = async () => {
-    if (!user || !playerName.trim()) return;
-    if (submittedChapters.includes(activeChapter.title)) return;
+  // --- SCREENS ---
+  
+  const LeaderboardScreen = () => {
+      const [scores, setScores] = useState([]);
+      useEffect(() => {
+          if (!db) return;
+          const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'scores'), limit(50));
+          return onSnapshot(q, (snap) => {
+              const d = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+              d.sort((a, b) => b.score - a.score);
+              setScores(d);
+          });
+      }, []);
 
-    setIsSubmittingScore(true);
-    try {
-      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'scores'), {
-        playerName: playerName.trim(),
-        score: score,
-        chapterTitle: activeChapter.title,
-        rank: getRank(score),
-        timestamp: serverTimestamp(),
-        uid: user.uid
-      });
-      
-      setSubmittedChapters([...submittedChapters, activeChapter.title]);
-      setIsSubmittingScore(false);
-      setGameState('leaderboard');
-    } catch (error) {
-      console.error("Error saving score:", error);
-      setIsSubmittingScore(false);
-    }
+      return (
+        <Leaderboard
+          scores={scores}
+          user={user}
+          filter={leaderboardFilter}
+          chapters={INITIAL_DATA}
+          onFilterChange={setLeaderboardFilter}
+          onBack={() => setGameState('menu')}
+        />
+      );
   };
-
-  // --- RENDER SCREENS ---
-
-  const MenuScreen = () => (
-    <div className="min-h-screen bg-slate-900 text-white p-6 flex flex-col items-center justify-center font-sans">
-      <div className="max-w-5xl w-full animate-in fade-in zoom-in-95 duration-500">
-        <header className="text-center mb-8">
-          <h1 className="text-6xl font-black mb-2 tracking-tighter">
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">RN</span>
-            <span className="text-white"> MASTERY</span>
-          </h1>
-          <p className="text-slate-400 text-xl font-medium">Classroom Edition v5.0</p>
-          
-          {/* Mode Toggle */}
-          <div className="flex justify-center mt-6 gap-4">
-            <button 
-              onClick={() => setGameMode('study')} 
-              className={`px-6 py-2 rounded-full font-bold flex items-center transition-all ${
-                gameMode === 'study' 
-                  ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
-                  : 'bg-slate-800 text-slate-400 hover:text-white'
-              }`}
-            >
-              <GraduationCap className="w-4 h-4 mr-2" /> Study Mode
-            </button>
-            <button 
-              onClick={() => setGameMode('ranked')} 
-              className={`px-6 py-2 rounded-full font-bold flex items-center transition-all ${
-                gameMode === 'ranked' 
-                  ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20' 
-                  : 'bg-slate-800 text-slate-400 hover:text-white'
-              }`}
-            >
-              <Trophy className="w-4 h-4 mr-2" /> Ranked Mode
-            </button>
-          </div>
-          
-          {gameMode === 'ranked' && (
-            <p className="text-slate-500 text-sm mt-3">
-              🔒 One-shot submission • High stakes scoring
-            </p>
-          )}
-        </header>
-
-        {/* Chapter Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {INITIAL_DATA.map(chapter => {
-            const isCompleted = submittedChapters.includes(chapter.title);
-            const isLocked = gameMode === 'ranked' && isCompleted;
-            
-            return (
-              <button 
-                key={chapter.id}
-                disabled={isLocked}
-                onClick={() => startChapter(chapter)} 
-                className={`p-6 rounded-2xl border flex flex-col items-center text-center transition-all group relative overflow-hidden ${
-                  isLocked
-                    ? 'bg-slate-800/50 border-slate-700 opacity-50 cursor-not-allowed'
-                    : 'bg-slate-800 border-slate-700 hover:border-cyan-500 hover:bg-slate-750'
-                }`}
-              >
-                {isCompleted && (
-                  <div className="absolute top-2 right-2 bg-green-500/20 text-green-400 px-2 py-1 rounded-full text-xs font-bold flex items-center">
-                    <CheckCircle className="w-3 h-3 mr-1" /> Ranked
-                  </div>
-                )}
-                
-                <div className={`p-4 rounded-xl mb-4 transition-transform group-hover:scale-110 ${
-                  gameMode === 'ranked' 
-                    ? 'bg-purple-500/20 text-purple-400' 
-                    : 'bg-emerald-500/20 text-emerald-400'
-                }`}>
-                  {chapter.icon}
-                </div>
-                
-                <h3 className="font-bold text-lg text-white">{chapter.title}</h3>
-                <div className="text-xs text-slate-400 mt-1">25 Questions</div>
-              </button>
-            );
-          })}
-        </div>
-        
-        {/* Footer Actions */}
-        <div className="mt-8 flex justify-center gap-4">
-          <button 
-            onClick={() => setGameState('leaderboard')} 
-            className="text-slate-400 hover:text-white flex items-center text-sm transition"
-          >
-            <Crown className="w-4 h-4 mr-2" /> View Leaderboard
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 
   const GameScreen = () => {
-    const q = questions[currentQuestionIndex];
+    const q = activeChapter.questions[currentQuestionIndex];
     const examTip = getExamTip(q);
     
     return (
-      <div className="min-h-screen bg-slate-900 text-white flex flex-col font-sans">
-        {/* Header */}
-        <div className="p-6 flex justify-between items-center border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-10">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => setGameState('menu')} 
-              className="text-slate-400 hover:text-white transition"
-            >
-              Exit
-            </button>
-            {q.concept && (
-              <div className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300">
-                {q.concept.replace(/_/g, ' ')}
-              </div>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-6">
-            <div className={`flex items-center font-bold ${
-              streak > 2 ? 'text-orange-400 animate-pulse' : 'text-slate-500'
-            }`}>
-              <Flame className="w-5 h-5 mr-1" /> {streak}
-            </div>
-            <div className="font-mono text-xl font-black text-white">{score}</div>
-          </div>
-        </div>
-
-        {/* Question Area */}
-        <div className="flex-1 max-w-3xl mx-auto w-full p-8 flex flex-col justify-center">
-          <div className="mb-2 text-slate-500 text-sm font-bold">
-            Question {currentQuestionIndex + 1} / {questions.length}
-          </div>
-          
-          <h2 className="text-2xl md:text-3xl font-bold leading-relaxed mb-8">
-            {q.text}
-          </h2>
-
-          {/* Options */}
-          <div className="grid gap-3 mb-8">
-            {q.options.map((opt, idx) => {
-              if (hiddenOptions.includes(idx)) return null;
-              
-              let style = "p-5 rounded-xl border-2 text-left font-medium transition-all w-full flex items-center ";
-              
-              if (showRationale) {
-                if (idx === q.correctIndex) {
-                  style += "bg-green-500/20 border-green-500 text-green-100";
-                } else if (idx === selectedOption) {
-                  style += "bg-red-500/20 border-red-500 text-red-100";
-                } else {
-                  style += "bg-slate-800 border-slate-700 opacity-50";
-                }
-              } else {
-                style += selectedOption === idx
-                  ? "bg-cyan-500/20 border-cyan-500 text-white"
-                  : "bg-slate-800 border-slate-700 hover:border-cyan-500 hover:bg-slate-750";
-              }
-
-              return (
-                <button 
-                  key={idx} 
-                  disabled={showRationale}
-                  onClick={() => setSelectedOption(idx)}
-                  className={style}
-                >
-                  <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center mr-4 text-sm font-bold text-slate-300 shrink-0">
-                    {String.fromCharCode(65 + idx)}
-                  </div>
-                  {opt}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Action Buttons */}
-          {!showRationale ? (
-            <div className="flex gap-4">
-              <button 
-                onClick={useFiftyFifty} 
-                disabled={fiftyFiftyUsed} 
-                className="p-4 bg-slate-800 hover:bg-slate-700 text-purple-400 border border-slate-700 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                title="50/50 Lifeline"
-              >
-                <Split className="w-6 h-6" />
-              </button>
-              
-              <button 
-                onClick={() => handleAnswer(selectedOption, 'GUESS')} 
-                disabled={selectedOption === null} 
-                className="flex-1 py-4 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl font-bold transition-all disabled:opacity-50"
-              >
-                I'm Guessing 🤔
-              </button>
-              
-              <button 
-                onClick={() => handleAnswer(selectedOption, 'SURE')} 
-                disabled={selectedOption === null} 
-                className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-900/20 disabled:opacity-50"
-              >
-                I'm Sure! 🚀
-              </button>
-            </div>
-          ) : (
-            /* Rationale Display */
-            <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 animate-in fade-in zoom-in-95">
-              <div className="flex items-start gap-4 mb-6">
-                {selectedOption === q.correctIndex ? (
-                  <CheckCircle className="w-8 h-8 text-green-400 shrink-0" />
-                ) : (
-                  <XCircle className="w-8 h-8 text-red-400 shrink-0" />
-                )}
-                
-                <div className="flex-1">
-                  <h3 className={`text-lg font-bold mb-1 ${
-                    selectedOption === q.correctIndex ? 'text-green-400' : 'text-red-400'
-                  }`}>
-                    {selectedOption === q.correctIndex ? "Correct!" : "Incorrect"}
-                  </h3>
-                  
-                  <p className="text-slate-300 leading-relaxed mb-4">{q.rationale}</p>
-                  
-                  {/* Exam Tip */}
-                  {examTip && (
-                    <div className="bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl flex gap-3 items-start">
-                      <Target className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
-                      <div>
-                        <div className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-1">
-                          NCLEX Strategy
-                        </div>
-                        <p className="text-sm text-blue-200 font-medium">{examTip}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {/* AI Tutor & Next Button */}
-              <div className="flex justify-between items-center pt-4 border-t border-slate-700">
-                {!aiExplanation ? (
-                  <button 
-                    onClick={handleAiTutor} 
-                    disabled={isAiLoading} 
-                    className="text-sm text-purple-400 hover:text-purple-300 flex items-center transition"
-                  >
-                    {isAiLoading ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-4 h-4 mr-2" />
-                    )}
-                    Get Mnemonic
-                  </button>
-                ) : (
-                  <div className="text-sm text-purple-300 flex items-start">
-                    <Sparkles className="w-3 h-3 mr-1 mt-0.5 shrink-0" /> 
-                    <span>{aiExplanation}</span>
-                  </div>
-                )}
-                
-                <button 
-                  onClick={nextQuestion} 
-                  className="px-6 py-3 bg-white text-slate-900 font-bold rounded-xl hover:bg-slate-200 transition-colors flex items-center"
-                >
-                  Next <ArrowRight className="ml-2 w-4 h-4" />
-                </button>
-              </div>
-            </div>
+      <div className="min-h-screen bg-slate-900 text-white font-sans flex flex-col bg-gradient-to-br from-indigo-950 via-slate-900 to-purple-950">
+        <div className="max-w-3xl mx-auto w-full p-6 flex-1 flex flex-col">
+          {/* Exit Confirmation Modal */}
+          {showExitConfirm && (
+            <ExitConfirmModal 
+              onCancel={() => setShowExitConfirm(false)}
+              onConfirm={confirmExit}
+            />
           )}
-        </div>
-      </div>
-    );
-  };
 
-  const SummaryScreen = () => {
-    const accuracy = Math.round((correctCount / questions.length) * 100);
-    const alreadySubmitted = submittedChapters.includes(activeChapter.title);
-
-    return (
-      <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-6 font-sans">
-        <div className="max-w-md w-full bg-slate-800 border border-slate-700 rounded-3xl p-8 text-center shadow-2xl animate-in fade-in zoom-in-95">
-          <div className="w-20 h-20 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-orange-500/50">
-            <Trophy className="w-10 h-10 text-white" />
-          </div>
-          
-          <h2 className="text-3xl font-black mb-2">MODULE COMPLETE</h2>
-          <div className="text-slate-400 mb-8 font-bold">{activeChapter.title}</div>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 gap-4 mb-8">
-            <div className="p-4 bg-slate-900 rounded-2xl border border-slate-700">
-              <div className="text-4xl font-black text-white">{score}</div>
-              <div className="text-xs font-bold text-slate-500 uppercase mt-1">Score</div>
-            </div>
-            <div className="p-4 bg-slate-900 rounded-2xl border border-slate-700">
-              <div className={`text-4xl font-black ${
-                accuracy >= 80 ? 'text-green-400' : accuracy >= 70 ? 'text-yellow-400' : 'text-orange-400'
-              }`}>
-                {accuracy}%
-              </div>
-              <div className="text-xs font-bold text-slate-500 uppercase mt-1">Accuracy</div>
-            </div>
+          {/* Top Bar */}
+          <div className="flex justify-between items-center mb-8">
+            <button onClick={handleExit} className="text-slate-400 hover:text-white transition">← Exit</button>
+            <ScoreBoard score={score} streak={streak} getMultiplier={getMultiplier} />
           </div>
 
-          {/* AI Study Guide */}
-          <div className="mb-6">
-            {!aiStudyGuide ? (
-              <button 
-                onClick={handleGenerateStudyGuide} 
-                disabled={isGuideLoading} 
-                className="w-full py-3 bg-purple-600/20 border border-purple-500/50 text-purple-300 rounded-xl font-bold hover:bg-purple-600/30 transition-colors flex items-center justify-center"
-              >
-                {isGuideLoading ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Sparkles className="w-4 h-4 mr-2" />
-                )}
-                Generate Study Guide
-              </button>
-            ) : (
-              <>
-                <div className="bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl text-left max-h-40 overflow-y-auto mb-3">
-                  <div className="text-xs text-purple-300 font-bold mb-2">AI STUDY NOTES:</div>
-                  <p className="text-sm text-slate-300 whitespace-pre-wrap">{aiStudyGuide}</p>
-                </div>
-                
-                <button 
-                  onClick={downloadStudyGuide} 
-                  className="w-full py-3 bg-blue-600/20 border border-blue-500/50 text-blue-300 rounded-xl font-bold hover:bg-blue-600/30 transition-colors flex items-center justify-center"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  💾 Download Study Guide
-                </button>
-              </>
-            )}
+          {/* Question Card with Progress Bar */}
+          <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-3xl p-8 mb-6 shadow-2xl relative overflow-hidden">
+            <ProgressBar currentIndex={currentQuestionIndex} total={activeChapter.questions.length} />
+            
+            <Question 
+              question={q}
+              selectedOption={selectedOption}
+              showRationale={showRationale}
+              feedbackMessage={feedbackMessage}
+              aiExplanation={aiExplanation}
+              isAiLoading={isAiLoading}
+              hiddenOptions={hiddenOptions}
+              examTip={examTip}
+              confidence={confidence}
+              onSelectOption={setSelectedOption}
+              onAiTutor={handleAiTutor}
+              onNextQuestion={nextQuestion}
+              onConfidenceSelect={handleConfidenceSelect}
+            />
           </div>
 
-          {/* Ranked Mode Submission */}
-          {gameMode === 'ranked' && (
-            <div className="mb-4">
-              {alreadySubmitted ? (
-                <div className="bg-yellow-500/10 border border-yellow-500/30 p-4 rounded-xl">
-                  <Lock className="w-5 h-5 text-yellow-400 mx-auto mb-2" />
-                  <p className="text-yellow-400 font-bold text-sm">Score already submitted</p>
-                </div>
-              ) : (
-                <div className="bg-slate-900 border border-slate-700 p-4 rounded-xl">
-                  <h3 className="text-white font-bold mb-3 text-sm">Submit to Leaderboard</h3>
-                  <div className="flex gap-2">
-                    <input 
-                      type="text" 
-                      placeholder="Your Name" 
-                      value={playerName} 
-                      onChange={e => setPlayerName(e.target.value)} 
-                      className="flex-1 bg-slate-800 border border-slate-700 rounded-lg p-3 text-white outline-none focus:border-cyan-500 text-sm"
-                    />
-                    <button 
-                      onClick={saveScoreToLeaderboard} 
-                      disabled={isSubmittingScore || !playerName.trim()} 
-                      className="bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg px-4 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition"
-                    >
-                      {isSubmittingScore ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                    </button>
-                  </div>
+          {/* Actions */}
+          {!showRationale && (
+            <div className="mt-auto sticky bottom-6 space-y-3">
+              {/* 50/50 Lifeline Button */}
+              {!fiftyFiftyUsed && (
+                <div className="flex justify-center">
+                  <button 
+                    onClick={use50_50}
+                    disabled={selectedOption !== null}
+                    className={`px-6 py-2 rounded-full font-bold text-sm transition-all border-2 flex items-center gap-2 ${
+                      selectedOption !== null 
+                        ? 'bg-slate-700 border-slate-600 text-slate-500 cursor-not-allowed' 
+                        : 'bg-gradient-to-r from-yellow-500 to-orange-500 border-yellow-400 text-white hover:scale-105 shadow-lg shadow-yellow-500/50'
+                    }`}
+                  >
+                    <span className="text-xl">📞</span>
+                    50/50 LIFELINE
+                  </button>
                 </div>
               )}
+              {fiftyFiftyUsed && (
+                <div className="text-center text-sm text-yellow-400 font-bold">
+                  ✓ Lifeline Used
+                </div>
+              )}
+              
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => setRiskMode(!riskMode)}
+                  className={`flex-1 py-4 rounded-xl font-black text-lg transition-all flex items-center justify-center border-2 ${riskMode ? 'bg-red-600 border-red-500 text-white animate-pulse' : 'bg-transparent border-red-500/50 text-red-400 hover:bg-red-500/10'}`}
+                >
+                  {riskMode ? "⚠️ RISK ACTIVE (-500/+DOUBLE)" : "🎲 RISK IT (+DOUBLE PTS)"}
+                </button>
+                <button 
+                  onClick={submitAnswer}
+                  disabled={selectedOption === null}
+                  className={`flex-[2] py-4 rounded-xl font-black text-lg transition-all shadow-lg ${selectedOption === null ? 'bg-slate-700 text-slate-500' : 'bg-cyan-500 text-white hover:bg-cyan-400 hover:scale-[1.02]'}`}
+                >
+                  LOCK IN
+                </button>
+              </div>
             </div>
           )}
-
-          {/* Return to Menu */}
-          <button 
-            onClick={() => setGameState('menu')} 
-            className="w-full py-4 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-all"
-          >
-            Return to Menu
-          </button>
         </div>
       </div>
     );
   };
 
-  const LeaderboardScreen = () => {
-    const [scores, setScores] = useState([]);
-    
-    useEffect(() => {
-      if (!db) return;
-      const q = query(
-        collection(db, 'artifacts', appId, 'public', 'data', 'scores'),
-        limit(50)
-      );
-      const unsub = onSnapshot(q, (snap) => {
-        const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        data.sort((a, b) => b.score - a.score);
-        setScores(data);
-      });
-      return () => unsub();
-    }, []);
-
+  const ModeSelectScreen = () => {
     return (
-      <div className="min-h-screen bg-slate-900 text-white p-6 flex flex-col items-center font-sans">
-        <div className="max-w-2xl w-full">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-black flex items-center">
-              <Crown className="w-8 h-8 mr-3 text-yellow-400" /> LEADERBOARD
-            </h2>
-            <button 
-              onClick={() => setGameState('menu')} 
-              className="text-slate-400 hover:text-white transition"
-            >
-              Back
-            </button>
-          </div>
-          
-          <div className="space-y-2">
-            {scores.map((s, i) => (
-              <div 
-                key={s.id} 
-                className="bg-slate-800 p-4 rounded-xl flex items-center border border-slate-700 hover:border-slate-600 transition"
-              >
-                <div className={`w-8 font-bold ${
-                  i === 0 ? 'text-yellow-400' : i === 1 ? 'text-slate-400' : i === 2 ? 'text-orange-600' : 'text-slate-500'
-                }`}>
-                  #{i + 1}
-                </div>
-                
-                <div className="flex-1 ml-4">
-                  <div className="font-bold text-white">{s.playerName}</div>
-                  <div className="text-xs text-slate-400">{s.chapterTitle}</div>
-                </div>
-                
-                <div className="text-cyan-400 font-mono font-bold text-lg">{s.score}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <ModeSelector
+        chapters={INITIAL_DATA}
+        analytics={analytics}
+        onSelectMode={startMode}
+        onBack={() => setGameState('menu')}
+      />
     );
   };
 
   // --- MAIN RENDER ---
-  if (gameState === 'menu') return <MenuScreen />;
+  if (gameState === 'menu') {
+    return (
+      <ChapterSelector 
+        chapters={INITIAL_DATA}
+        onSelectChapter={startChapter}
+        onViewLeaderboard={() => setGameState('leaderboard')}
+        onPracticeModes={() => setGameState('modeSelector')}
+        submittedChapters={submittedChapters}
+      />
+    );
+  }
+
+  if (gameState === 'modeSelector') return <ModeSelectScreen />;
+
+  if (gameState === 'summary') {
+    const rank = getRank(score);
+    const personalBest = getPersonalBest(activeChapter.id);
+    
+    return (
+      <Summary 
+        score={score}
+        correctCount={correctCount}
+        incorrectCount={incorrectCount}
+        totalQuestions={activeChapter.questions.length}
+        chapterTitle={activeChapter.title}
+        personalBest={personalBest}
+        rank={rank}
+        playerName={playerName}
+        isSubmitting={isSubmittingScore}
+        missedQuestions={missedQuestions}
+        onPlayerNameChange={(e) => setPlayerName(e.target.value)}
+        onSaveScore={saveScoreToLeaderboard}
+        onReturnToMenu={() => setGameState('menu')}
+        hasSubmitted={submittedChapters.includes(activeChapter.title)}
+        aiExplanation={aiExplanation}
+      />
+    );
+  }
+
   if (gameState === 'playing') return <GameScreen />;
-  if (gameState === 'summary') return <SummaryScreen />;
   if (gameState === 'leaderboard') return <LeaderboardScreen />;
   
-  return <MenuScreen />;
+  return null;
 }
