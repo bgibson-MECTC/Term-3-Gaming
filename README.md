@@ -13,6 +13,26 @@ A competitive, gamified learning platform for nursing students covering Chapters
 
 ### New Improvements ✨
 
+#### 🔀 Smart Question Shuffling
+- **Randomized Order**: Questions shuffle every time you play a chapter
+- **No Memorization**: Test your actual knowledge, not pattern memory
+- **Fair Assessment**: Prevents "Answer C then A" shortcuts
+
+#### 📞 50/50 Lifeline
+- **One Per Module**: Just like Who Wants to Be a Millionaire!
+- **Strategic Help**: Removes 2 incorrect answers, leaving correct + 1 distractor
+- **NCLEX Prep**: Practice narrowing down difficult concepts
+- **Smart Usage**: Lifeline only available before answering
+
+#### 📝 Missed Question Review
+- **Learning from Mistakes**: Most valuable study happens after errors
+- **Expandable Panel**: Shows all incorrect answers on Summary screen
+- **Detailed Breakdown**: 
+  - Your selected answer
+  - Correct answer
+  - Full rationale explanation
+- **Efficient Study**: Focus on your weak areas
+
 #### Keyboard Shortcuts
 - **1-4**: Select answer options
 - **Enter**: Submit answer / Continue to next question
