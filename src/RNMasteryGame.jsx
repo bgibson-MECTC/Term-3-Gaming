@@ -12,6 +12,9 @@ import { enrichQuestions, getExamTip } from './questionTags/index';
 import { MODES, getPool } from './modes';
 import InstructorMode from './components/InstructorMode';
 
+// Log Firebase status
+console.log('Firebase initialized:', { db: !!db, auth: !!auth });
+
 // --- GEMINI API INTEGRATION ---
 const callGemini = async (prompt) => {
   const apiKey = process.env.REACT_APP_GEMINI_API_KEY || "AIzaSyAT-wsupPN4ROtkDzkYVJ9yRJiGa4LvvV8";
@@ -1173,7 +1176,6 @@ export default function RNMasteryGame() {
   // Instructor Mode
   const [showInstructorMode, setShowInstructorMode] = useState(false);
   const [customChapters, setCustomChapters] = useState([]);
-  const [unlockedChapters, setUnlockedChapters] = useState(['ch18', 'ch19', 'ch20']); // Default unlocked chapters
   
   // Weakness & Analytics Tracking
   const [weaknessStats, setWeaknessStats] = useState(() => {
@@ -1220,23 +1222,6 @@ export default function RNMasteryGame() {
       }
     };
     loadCustomChapters();
-    
-    // Load unlocked chapters
-    const loadUnlockedChapters = async () => {
-      if (!db) return;
-      try {
-        const docRef = await getDocs(collection(db, 'settings'));
-        const settingsDoc = docRef.docs.find(doc => doc.id === 'chapterAccess');
-        if (settingsDoc) {
-          setUnlockedChapters(settingsDoc.data().unlocked || []);
-        }
-      } catch (error) {
-        console.error('Error loading chapter locks:', error);
-        // Default: all built-in chapters unlocked
-        setUnlockedChapters(INITIAL_DATA.map(ch => ch.id));
-      }
-    };
-    loadUnlockedChapters();
   }, []);
 
   // --- FIREBASE AUTH & DATA LOADING ---
@@ -1655,9 +1640,7 @@ Rationale: ${missed.question.rationale}
           {[...INITIAL_DATA, ...customChapters].map(chapter => {
             const chapterId = chapter.id || chapter.chapterId;
             const isCompleted = submittedChapters.includes(chapter.title);
-            const isRankedLocked = gameMode === 'ranked' && isCompleted;
-            const isChapterLocked = !unlockedChapters.includes(chapterId);
-            const isLocked = isRankedLocked || isChapterLocked;
+            const isLocked = gameMode === 'ranked' && isCompleted;
             
             return (
               <button 
@@ -1673,12 +1656,6 @@ Rationale: ${missed.question.rationale}
                 {isCompleted && (
                   <div className="absolute top-2 right-2 bg-green-500/20 text-green-400 px-2 py-1 rounded-full text-xs font-bold flex items-center">
                     <CheckCircle className="w-3 h-3 mr-1" /> Ranked
-                  </div>
-                )}
-                
-                {isChapterLocked && (
-                  <div className="absolute top-2 left-2 bg-red-500/20 text-red-400 px-2 py-1 rounded-full text-xs font-bold flex items-center">
-                    <Lock className="w-3 h-3 mr-1" /> Locked
                   </div>
                 )}
                 
