@@ -1204,7 +1204,7 @@ export default function RNMasteryGame() {
   const [playerName, setPlayerName] = useState('');
   const [isSubmittingScore, setIsSubmittingScore] = useState(false);
   const [submittedChapters, setSubmittedChapters] = useState([]);
-  const [firebaseStatus, setFirebaseStatus] = useState({ connected: false, authenticated: false });
+  const [firebaseStatus, setFirebaseStatus] = useState({ connected: !!db && !!auth, authenticated: false, initializing: true });
 
   // --- LOAD CUSTOM CHAPTERS FROM FIREBASE ---
   useEffect(() => {
@@ -1226,36 +1226,18 @@ export default function RNMasteryGame() {
 
   // --- FIREBASE AUTH & DATA LOADING ---
   useEffect(() => {
-    const initAuth = async () => {
-      if (!auth) {
-        console.warn('Firebase auth not initialized');
-        setFirebaseStatus({ connected: false, authenticated: false });
-        return;
-      }
-      
-      setFirebaseStatus({ connected: true, authenticated: false });
-      
-      try {
-        if (typeof window !== 'undefined' && window.__initial_auth_token) {
-          console.log('Signing in with custom token');
-          await signInWithCustomToken(auth, window.__initial_auth_token);
-        } else {
-          console.log('Signing in anonymously');
-          await signInAnonymously(auth);
-        }
-      } catch (error) {
-        console.error('Auth initialization error:', error);
-      }
-    };
-    
-    initAuth();
-    
-    if (!auth) return;
-    
+    if (!auth || !db) {
+      console.error('Firebase not initialized properly');
+      setFirebaseStatus({ connected: false, authenticated: false, initializing: false });
+      return;
+    }
+
+    setFirebaseStatus({ connected: true, authenticated: false, initializing: true });
+
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
-      console.log('Auth state changed:', u ? 'User logged in' : 'No user');
+      console.log('Auth state changed:', u ? `User logged in: ${u.uid}` : 'No user');
       setUser(u);
-      setFirebaseStatus({ connected: true, authenticated: !!u });
+      setFirebaseStatus({ connected: true, authenticated: !!u, initializing: false });
       
       if (u && db) {
         try {
@@ -1272,6 +1254,25 @@ export default function RNMasteryGame() {
         }
       }
     });
+    
+    // Trigger authentication immediately
+    const initAuth = async () => {
+      try {
+        if (typeof window !== 'undefined' && window.__initial_auth_token) {
+          console.log('Signing in with custom token');
+          await signInWithCustomToken(auth, window.__initial_auth_token);
+        } else {
+          console.log('Signing in anonymously');
+          const result = await signInAnonymously(auth);
+          console.log('Anonymous sign in successful:', result.user.uid);
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        setFirebaseStatus({ connected: true, authenticated: false, initializing: false });
+      }
+    };
+    
+    initAuth();
     
     return () => unsubscribe();
   }, []);
@@ -1938,9 +1939,17 @@ Rationale: ${missed.question.rationale}
             <div className="mb-4">
               {/* Firebase Status Indicator */}
               <div className="mb-3 flex items-center justify-center gap-2 text-xs">
-                <div className={`w-2 h-2 rounded-full ${firebaseStatus.authenticated ? 'bg-green-400' : firebaseStatus.connected ? 'bg-yellow-400' : 'bg-red-400'}`}></div>
+                <div className={`w-2 h-2 rounded-full ${
+                  firebaseStatus.authenticated ? 'bg-green-400' : 
+                  firebaseStatus.initializing ? 'bg-yellow-400 animate-pulse' : 
+                  firebaseStatus.connected ? 'bg-yellow-400' : 
+                  'bg-red-400'
+                }`}></div>
                 <span className="text-slate-400">
-                  {firebaseStatus.authenticated ? 'Ready to submit' : firebaseStatus.connected ? 'Connecting...' : 'Offline - scores cannot be saved'}
+                  {firebaseStatus.authenticated ? 'Ready to submit' : 
+                   firebaseStatus.initializing ? 'Connecting to server...' :
+                   firebaseStatus.connected ? 'Authenticating...' : 
+                   'Offline - scores cannot be saved'}
                 </span>
               </div>
               
@@ -1952,7 +1961,13 @@ Rationale: ${missed.question.rationale}
               ) : (
                 <div className="bg-slate-900 border border-slate-700 p-4 rounded-xl">
                   <h3 className="text-white font-bold mb-3 text-sm">Submit to Leaderboard</h3>
-                  {!firebaseStatus.authenticated && firebaseStatus.connected && (
+                  {firebaseStatus.initializing && (
+                    <p className="text-yellow-400 text-xs mb-2 flex items-center justify-center gap-2">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Initializing connection...
+                    </p>
+                  )}
+                  {!firebaseStatus.authenticated && !firebaseStatus.initializing && firebaseStatus.connected && (
                     <p className="text-yellow-400 text-xs mb-2">⏳ Authenticating...</p>
                   )}
                   {!firebaseStatus.connected && (
@@ -1971,7 +1986,12 @@ Rationale: ${missed.question.rationale}
                       onClick={saveScoreToLeaderboard} 
                       disabled={isSubmittingScore || !playerName.trim() || !firebaseStatus.authenticated} 
                       className="bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg px-4 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition"
-                      title={!firebaseStatus.authenticated ? 'Waiting for authentication...' : !playerName.trim() ? 'Enter your name first' : 'Submit score'}
+                      title={
+                        firebaseStatus.initializing ? 'Connecting...' :
+                        !firebaseStatus.authenticated ? 'Waiting for authentication...' : 
+                        !playerName.trim() ? 'Enter your name first' : 
+                        'Submit score'
+                      }
                     >
                       {isSubmittingScore ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     </button>
