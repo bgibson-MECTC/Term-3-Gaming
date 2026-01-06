@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Bug, Bone, Activity, AlertCircle, Brain, Trophy, ArrowRight, CheckCircle, XCircle, Flame, Split, Loader2, Sparkles, Target, Crown, Lock, GraduationCap, Save, Download, Settings } from 'lucide-react';
+import { Shield, Bug, Bone, Activity, AlertCircle, Brain, Trophy, ArrowRight, CheckCircle, XCircle, Flame, Split, Loader2, Sparkles, Target, Crown, Lock, GraduationCap, Save, Download, Settings, Zap, Clock, Timer, LogOut } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { collection, addDoc, onSnapshot, query, limit, serverTimestamp, getDocs, where } from "firebase/firestore";
 import { signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "firebase/auth";
@@ -1897,13 +1897,16 @@ Rationale: ${missed.question.rationale}
                   ? "bg-cyan-500/20 border-cyan-500 text-white"
                   : "bg-slate-800 border-slate-700 hover:border-cyan-500 hover:bg-slate-750";
               }
+              
+              // Lock options if in ranked mode and rationale selection is shown (answer submitted)
+              const isLocked = gameMode === 'ranked' && showRationaleSelection;
 
               return (
                 <button 
                   key={idx} 
-                  disabled={showRationale}
-                  onClick={() => setSelectedOption(idx)}
-                  className={style}
+                  disabled={showRationale || isLocked}
+                  onClick={() => !isLocked && setSelectedOption(idx)}
+                  className={style + (isLocked ? " cursor-not-allowed opacity-75" : "")}
                 >
                   <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center mr-4 text-sm font-bold text-slate-300 shrink-0">
                     {String.fromCharCode(65 + idx)}
@@ -1994,6 +1997,38 @@ Rationale: ${missed.question.rationale}
                   }`}>
                     {selectedOption === q.correctIndex ? "Correct!" : "Incorrect"}
                   </h3>
+                  
+                  {/* Time-based performance feedback for Ranked Mode */}
+                  {gameMode === 'ranked' && selectedOption === q.correctIndex && (
+                    <div className="mb-3">
+                      {timeSpent < 3 ? (
+                        <div className="flex items-center gap-2 text-yellow-400 text-sm">
+                          <AlertCircle className="w-4 h-4" />
+                          <span className="font-semibold">Too fast! ({timeSpent}s) - Score penalty applied for rushed answer</span>
+                        </div>
+                      ) : timeSpent <= 15 ? (
+                        <div className="flex items-center gap-2 text-green-400 text-sm">
+                          <Zap className="w-4 h-4" />
+                          <span className="font-semibold">Excellent timing! ({timeSpent}s) - Bonus points earned 🎯</span>
+                        </div>
+                      ) : timeSpent <= 22 ? (
+                        <div className="flex items-center gap-2 text-blue-400 text-sm">
+                          <Clock className="w-4 h-4" />
+                          <span className="font-semibold">Good pace ({timeSpent}s) - Full points awarded</span>
+                        </div>
+                      ) : timeSpent <= 30 ? (
+                        <div className="flex items-center gap-2 text-orange-400 text-sm">
+                          <Clock className="w-4 h-4" />
+                          <span className="font-semibold">Close call ({timeSpent}s) - Small time penalty</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-red-400 text-sm">
+                          <Clock className="w-4 h-4" />
+                          <span className="font-semibold">Overtime ({timeSpent}s) - Score penalty applied</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   
                   <p className="text-slate-300 leading-relaxed mb-4">{q.rationale}</p>
                   

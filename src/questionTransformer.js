@@ -343,18 +343,21 @@ export function scoreRationale(selectedRationaleIndex, correctRationaleIndex) {
  * @returns {number} Multiplier (0.5 to 1.5)
  */
 export function calculateTimeMultiplier(timeSpent, timeLimit) {
-  if (timeSpent <= timeLimit * 0.5) {
-    // Too fast - might be guessing
-    return 0.7;
-  } else if (timeSpent <= timeLimit * 0.75) {
-    // Good pace
-    return 1.2;
-  } else if (timeSpent <= timeLimit) {
-    // Normal pace
+  if (timeSpent < 3) {
+    // Too fast - rushed/guessing penalty
+    return 0.5;
+  } else if (timeSpent <= 15) {
+    // Excellent timing - bonus points
+    return 1.3;
+  } else if (timeSpent <= 22) {
+    // Good pace - full points
     return 1.0;
+  } else if (timeSpent <= timeLimit) {
+    // Acceptable but slow - small penalty
+    return 0.9;
   } else {
-    // Over time - penalty
-    return 0.8;
+    // Over time - larger penalty
+    return 0.7;
   }
 }
 
