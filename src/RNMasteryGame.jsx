@@ -1180,6 +1180,7 @@ export default function RNMasteryGame() {
   const [selectedRationale, setSelectedRationale] = useState(null);
   const [showRationaleSelection, setShowRationaleSelection] = useState(false);
   const [recentAnswerIndices, setRecentAnswerIndices] = useState([]);
+  const [lastRationaleTier, setLastRationaleTier] = useState(null);
   
   // Instructor Mode
   const [showInstructorMode, setShowInstructorMode] = useState(false);
@@ -1375,6 +1376,7 @@ export default function RNMasteryGame() {
     setConfidence(null);
     setSelectedRationale(null);
     setShowRationaleSelection(false);
+    setLastRationaleTier(null);
     
     // Reset timer for ranked mode
     if (gameMode === 'ranked') {
@@ -1423,35 +1425,56 @@ export default function RNMasteryGame() {
     // Calculate points
     let points = 0;
     let timeMultiplier = 1.0;
-    let rationaleBonus = 0;
+    let rationaleScore = null;
+    let rationaleTier = null;
     
     if (isCorrect) {
       setCorrectCount(correctCount + 1);
       
       if (gameMode === 'ranked') {
-        // Base points
-        points = confLevel === 'SURE' ? 150 : 100;
-        
-        // Streak bonus
-        points += streak * 50;
-        
-        // Time multiplier
-        timeMultiplier = calculateTimeMultiplier(timeSpent, q.timeLimit || 30);
-        points = Math.round(points * timeMultiplier);
-        
-        // Rationale bonus
+        // Check rationale quality first
         if (q.requiresRationale && selectedRationale !== null) {
-          rationaleBonus = scoreRationale(selectedRationale, q.correctRationaleIndex || 0);
-          points += rationaleBonus;
+          const rationaleResult = scoreRationale(selectedRationale, q.correctRationaleIndex || 0);
+          rationaleScore = rationaleResult.score;
+          rationaleTier = rationaleResult.tier;
+          
+          // ZERO POINTS for correct answer with incorrect rationale
+          if (rationaleTier === 'incorrect') {
+            points = 0;
+            setStreak(0); // Break streak for wrong reasoning
+          } else {
+            // Calculate points for correct/weak rationale
+            // Base points
+            points = confLevel === 'SURE' ? 150 : 100;
+            
+            // Streak bonus
+            points += streak * 50;
+            
+            // Time multiplier
+            timeMultiplier = calculateTimeMultiplier(timeSpent, q.timeLimit || 30);
+            points = Math.round(points * timeMultiplier);
+            
+            // Rationale adjustment
+            if (rationaleTier === 'weak') {
+              points = Math.round(points * 0.5); // 50% of points for weak rationale
+            }
+            // Full points for correct rationale (no adjustment)
+            
+            // Pattern penalty
+            if (detectAnswerPattern(recentAnswerIndices)) {
+              points = Math.round(points * 0.5); // 50% penalty for patterns
+            }
+            
+            setStreak(streak + 1); // Maintain streak for weak rationale
+          }
+        } else {
+          // No rationale required (shouldn't happen in ranked mode)
+          points = confLevel === 'SURE' ? 150 : 100;
+          setStreak(streak + 1);
         }
-        
-        // Pattern penalty
-        if (detectAnswerPattern(recentAnswerIndices)) {
-          points = Math.round(points * 0.5); // 50% penalty for patterns
-        }
+      } else {
+        setStreak(streak + 1);
       }
-      
-      setStreak(streak + 1);
     } else {
       setIncorrectCount(incorrectCount + 1);
       setStreak(0);
@@ -1524,6 +1547,7 @@ export default function RNMasteryGame() {
           timeSpent: gameMode === 'ranked' ? timeSpent : null,
           timeMultiplier: gameMode === 'ranked' ? timeMultiplier : null,
           rationaleCorrect: gameMode === 'ranked' && q.requiresRationale ? (selectedRationale === (q.correctRationaleIndex || 0)) : null,
+          rationaleTier: gameMode === 'ranked' && q.requiresRationale ? rationaleTier : null,
           timestamp: serverTimestamp()
         }).catch(err => console.error('Analytics save error:', err));
       } catch (e) {
@@ -2025,6 +2049,50 @@ Rationale: ${missed.question.rationale}
                         <div className="flex items-center gap-2 text-red-400 text-sm">
                           <Clock className="w-4 h-4" />
                           <span className="font-semibold">Overtime ({timeSpent}s) - Score penalty applied</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Rationale quality feedback for Ranked Mode */}
+                  {gameMode === 'ranked' && lastRationaleTier && (
+                    <div className="mb-3">
+                      {lastRationaleTier === 'correct' ? (
+                        <div className="flex items-center gap-2 text-green-400 text-sm bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                          <CheckCircle className="w-4 h-4" />
+                          <span className="font-semibold">Excellent reasoning! Full points for clinical judgment ✓</span>
+                        </div>
+                      ) : lastRationaleTier === 'weak' ? (
+                        <div className="flex items-center gap-2 text-yellow-400 text-sm bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                          <AlertCircle className="w-4 h-4" />
+                          <span className="font-semibold">Partial credit - Reasoning shows surface understanding but lacks depth</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-red-400 text-sm bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                          <XCircle className="w-4 h-4" />
+                          <span className="font-semibold">Incorrect reasoning - Zero points. Right answer requires right rationale!</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Rationale quality feedback for Ranked Mode */}
+                  {gameMode === 'ranked' && lastRationaleTier && (
+                    <div className="mb-3">
+                      {lastRationaleTier === 'correct' ? (
+                        <div className="flex items-center gap-2 text-green-400 text-sm bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                          <CheckCircle className="w-4 h-4" />
+                          <span className="font-semibold">Excellent reasoning! Full points for clinical judgment ✓</span>
+                        </div>
+                      ) : lastRationaleTier === 'weak' ? (
+                        <div className="flex items-center gap-2 text-yellow-400 text-sm bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                          <AlertCircle className="w-4 h-4" />
+                          <span className="font-semibold">Partial credit - Reasoning shows surface understanding but lacks depth</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-red-400 text-sm bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                          <XCircle className="w-4 h-4" />
+                          <span className="font-semibold">Incorrect reasoning - Zero points. Right answer requires right rationale!</span>
                         </div>
                       )}
                     </div>

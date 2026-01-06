@@ -364,7 +364,10 @@ function generatePriorityRationales(question) {
 }
 
 /**
- * Generates plausible rationale options
+ * Generates plausible rationale options with three tiers:
+ * - Correct rationale (index 0): Full understanding
+ * - Weak rationale (index 1): Partial understanding
+ * - Incorrect rationales (index 2-3): Flawed reasoning
  */
 function generateRationaleOptions(question) {
   const { concept, skill, bloom, correctIndex, options } = question;
@@ -372,13 +375,15 @@ function generateRationaleOptions(question) {
   const correctAnswer = options[correctIndex];
   
   return [
-    // Correct rationale (index 0)
+    // CORRECT rationale (index 0) - Full points
     generateCorrectRationale(question),
     
-    // Plausible but incorrect rationales
+    // WEAK rationale (index 1) - Partial credit
+    generateWeakRationale(question),
+    
+    // INCORRECT rationales (index 2-3) - Zero points
     `This option addresses a different priority in ${concept || 'care'}`,
     `While related to ${skill?.[0] || 'the concept'}, this doesn't address the immediate need`,
-    `This action would be appropriate at a later stage of care`,
   ];
 }
 
@@ -409,6 +414,32 @@ function generateCorrectRationale(question) {
 }
 
 /**
+ * Generates weak but partially correct rationale
+ * Shows surface-level understanding without full clinical reasoning
+ */
+function generateWeakRationale(question) {
+  const { concept, skill, rationale } = question;
+  
+  // Extract a supporting detail rather than the main point
+  if (rationale) {
+    const sentences = rationale.split('.');
+    if (sentences.length > 1) {
+      return sentences[1]?.trim() + '.'; // Second sentence is usually supporting detail
+    }
+  }
+  
+  // Generate generic weak reasoning
+  const weakReasons = [
+    `This option is mentioned in the textbook about ${concept || 'this topic'}`,
+    `This is commonly recommended for ${concept || 'this condition'}`,
+    `This intervention is part of standard nursing care`,
+    `This action appears in the care guidelines`,
+  ];
+  
+  return weakReasons[Math.floor(Math.random() * weakReasons.length)];
+}
+
+/**
  * Shuffles options to prevent pattern recognition
  */
 function shuffleOptions(options, correctIndex) {
@@ -431,16 +462,19 @@ function shuffleOptions(options, correctIndex) {
 }
 
 /**
- * Calculates rationale quality score
+ * Calculates rationale quality score with three tiers
  * @param {number} selectedRationaleIndex - Index of rationale chosen by student
- * @param {number} correctRationaleIndex - Index of correct rationale
- * @returns {number} Score from 0-100
+ * @param {number} correctRationaleIndex - Index of correct rationale (always 0)
+ * @returns {Object} { score: 0-100, tier: 'correct'|'weak'|'incorrect' }
  */
 export function scoreRationale(selectedRationaleIndex, correctRationaleIndex) {
-  if (selectedRationaleIndex === correctRationaleIndex) {
-    return 100; // Perfect reasoning
+  if (selectedRationaleIndex === 0) {
+    return { score: 100, tier: 'correct' }; // Full points: Deep clinical reasoning
+  } else if (selectedRationaleIndex === 1) {
+    return { score: 50, tier: 'weak' }; // Partial credit: Surface understanding
+  } else {
+    return { score: 0, tier: 'incorrect' }; // Zero points: Flawed reasoning
   }
-  return 0; // Incorrect reasoning
 }
 
 /**
