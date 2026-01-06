@@ -12,14 +12,23 @@
 export function transformToRankedQuestion(question) {
   const { text, options, correctIndex, rationale, concept, skill, bloom } = question;
   
+  // 20% chance to use priority-based transformation (all options correct, differ by priority)
+  const usePriorityTransform = Math.random() < 0.2;
+  
   // Generate rationale options based on the concept
-  const rationaleOptions = generateRationaleOptions(question);
+  const rationaleOptions = usePriorityTransform 
+    ? generatePriorityRationales(question)
+    : generateRationaleOptions(question);
   
   // Transform question text into clinical scenario
-  const transformedText = transformQuestionText(text, concept, skill);
+  const transformedText = usePriorityTransform
+    ? transformToPriorityQuestion(text, concept, skill)
+    : transformQuestionText(text, concept, skill);
   
   // Transform options to add clinical context and vary presentation
-  const clinicalOptions = transformOptions(options, concept, skill);
+  const clinicalOptions = usePriorityTransform
+    ? transformToPriorityOptions(options, correctIndex, concept, skill)
+    : transformOptions(options, concept, skill);
   
   // Reorder options to prevent pattern recognition
   const { newOptions, newCorrectIndex } = shuffleOptions(clinicalOptions, correctIndex);
@@ -35,6 +44,7 @@ export function transformToRankedQuestion(question) {
     correctRationaleIndex: 0, // Index of the correct rationale
     timeLimit: 30, // seconds
     isTransformed: true, // Flag to indicate transformation
+    isPriorityQuestion: usePriorityTransform, // All options correct, differ by priority
   };
 }
 
@@ -254,6 +264,103 @@ function convertToImmediateAction(text, concept) {
     `The nurse receives critical lab values related to ${concept || 'function'}. Which finding poses the greatest immediate threat?`,
   ];
   return actions[Math.floor(Math.random() * actions.length)];
+}
+
+/**
+ * TRANSFORMATION TYPE 6: Priority-Based Questions
+ * All options are clinically correct interventions, but differ in priority level
+ * Tests clinical judgment and ability to recognize most urgent need
+ */
+function transformToPriorityQuestion(text, concept, skills) {
+  const priorityFrames = [
+    `A patient with ${concept || 'this condition'} requires multiple interventions. Which action should the nurse complete first?`,
+    `The nurse is caring for a patient with ${concept || 'this condition'}. All of the following are appropriate, but which is the highest priority?`,
+    `When caring for a patient with ${concept || 'this condition'}, the nurse recognizes several needs. Which intervention is most important initially?`,
+    `A patient presents with ${concept || 'this condition'}. The nurse plans care. Which action should take priority?`,
+  ];
+  return priorityFrames[Math.floor(Math.random() * priorityFrames.length)];
+}
+
+/**
+ * Transforms options into priority-based interventions
+ * All options become clinically correct but differ in urgency/sequence
+ */
+function transformToPriorityOptions(options, correctIndex, concept, skills) {
+  const priorityLevels = [
+    { level: 'immediate', phrases: ['Assess airway and breathing', 'Check vital signs', 'Ensure patent IV access', 'Position for optimal perfusion'] },
+    { level: 'urgent', phrases: ['Administer prescribed medication', 'Notify healthcare provider', 'Obtain lab specimens', 'Review current medications'] },
+    { level: 'important', phrases: ['Document findings', 'Educate patient', 'Assess pain level', 'Provide comfort measures'] },
+    { level: 'routine', phrases: ['Update care plan', 'Coordinate with team', 'Schedule follow-up', 'Prepare discharge instructions'] }
+  ];
+  
+  return options.map((opt, idx) => {
+    // Correct answer gets highest priority framing
+    if (idx === correctIndex) {
+      return reframeToPriority(opt, 'immediate', concept);
+    }
+    
+    // Distribute other options across lower priority levels
+    const priorityLevel = idx % 3 === 0 ? 'urgent' : idx % 3 === 1 ? 'important' : 'routine';
+    return reframeToPriority(opt, priorityLevel, concept);
+  });
+}
+
+/**
+ * Reframes an option to sound clinically appropriate but at specified priority level
+ */
+function reframeToPriority(option, priorityLevel, concept) {
+  // Remove absolute terms
+  let reframed = option
+    .replace(/\b(always|never|must|only|all)\b/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  
+  // Add priority-appropriate context
+  const contexts = {
+    immediate: [
+      reframed,
+      `${reframed} to stabilize condition`,
+      `${reframed} as priority intervention`,
+    ],
+    urgent: [
+      `${reframed} after initial assessment`,
+      `${reframed} following stabilization`,
+      `${reframed} once safety is ensured`,
+    ],
+    important: [
+      `${reframed} when condition permits`,
+      `${reframed} during ongoing care`,
+      `${reframed} as part of comprehensive plan`,
+    ],
+    routine: [
+      `${reframed} before discharge`,
+      `${reframed} during follow-up care`,
+      `${reframed} when time allows`,
+    ]
+  };
+  
+  const choices = contexts[priorityLevel] || contexts['important'];
+  return choices[Math.floor(Math.random() * choices.length)];
+}
+
+/**
+ * Generates rationales for priority-based questions
+ * Explains why other options, though correct, are not the highest priority
+ */
+function generatePriorityRationales(question) {
+  const { concept, skill, correctIndex, options } = question;
+  
+  return [
+    // Correct rationale (index 0)
+    `This addresses the most immediate physiological need based on nursing priorities (ABCs - Airway, Breathing, Circulation). While other options are appropriate, they can be delayed until the patient is stabilized.`,
+    
+    // Plausible but incorrect rationales
+    `This intervention is important for ongoing care, but does not address the most urgent need. Patient safety and physiological stability take precedence over this action.`,
+    
+    `While this is clinically appropriate and should be completed, it represents a secondary priority. The immediate threat to patient well-being must be addressed first.`,
+    
+    `This action is part of comprehensive nursing care but can be safely delayed. The highest priority intervention focuses on preventing immediate complications or harm.`,
+  ];
 }
 
 /**
