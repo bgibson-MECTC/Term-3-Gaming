@@ -1156,6 +1156,11 @@ export default function RNMasteryGame() {
   // Core Game State
   const [gameState, setGameState] = useState('menu'); 
   const [gameMode, setGameMode] = useState('study'); // 'study' or 'ranked'
+  const [studyModeScores, setStudyModeScores] = useState(() => {
+    const saved = localStorage.getItem('rnMasteryStudyScores');
+    return saved ? JSON.parse(saved) : {};
+  });
+  const [currentPerformance, setCurrentPerformance] = useState(100); // Track current session performance
   const [activeChapter, setActiveChapter] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -1337,8 +1342,26 @@ export default function RNMasteryGame() {
     return () => unsubscribe();
   }, []);
 
+  // --- RANK MODE ACCESS CONTROL ---
+  const isRankModeUnlocked = (chapterId) => {
+    const chapterScore = studyModeScores[chapterId];
+    return chapterScore && chapterScore.percentage >= 85;
+  };
+  
+  const getStudyModePercentage = (chapterId) => {
+    return studyModeScores[chapterId]?.percentage || 0;
+  };
+
   // --- GAME LOGIC ---
   const startChapter = (chapter, mode = MODES.CHAPTER_REVIEW) => {
+    const chapterId = chapter.id || chapter.chapterId;
+    
+    // Check Rank Mode access
+    if (gameMode === 'ranked' && !isRankModeUnlocked(chapterId)) {
+      const currentScore = getStudyModePercentage(chapterId);
+      alert(`🔒 Rank Mode Locked\n\nYou need 85% in Study Mode to unlock Rank Mode.\n\nCurrent Study Mode score: ${currentScore}%\n\nComplete Study Mode first to demonstrate mastery!`);
+      return;
+    }
     // Get questions directly from the selected chapter
     let chapterQuestions = enrichQuestions(chapter.questions);
     
@@ -1347,8 +1370,20 @@ export default function RNMasteryGame() {
       return;
     }
     
-    // Transform questions for Ranked Mode
+    // Filter and transform questions for Ranked Mode
     if (gameMode === 'ranked') {
+      // Filter for higher-order Bloom levels (APPLICATION, ANALYSIS, PRIORITIZATION)
+      const higherOrderBlooms = ['APPLICATION', 'ANALYSIS', 'PRIORITIZATION', 'CLINICAL_JUDGMENT', 'EVALUATE', 'SYNTHESIS'];
+      const filteredQuestions = chapterQuestions.filter(q => 
+        q.bloom && higherOrderBlooms.some(level => 
+          q.bloom.toUpperCase().includes(level)
+        )
+      );
+      
+      // Fall back to all questions if no higher-order questions found
+      chapterQuestions = filteredQuestions.length >= 5 ? filteredQuestions : chapterQuestions;
+      
+      // Transform questions for clinical scenarios
       chapterQuestions = chapterQuestions.map(q => transformToRankedQuestion(q));
     }
     
@@ -1562,9 +1597,45 @@ export default function RNMasteryGame() {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       resetTurn();
+      
+      // Check performance in Rank Mode and redirect if below 70%
+      if (gameMode === 'ranked' && currentQuestionIndex > 0) {
+        const currentPerf = Math.round((correctCount / (currentQuestionIndex + 1)) * 100);
+        setCurrentPerformance(currentPerf);
+        
+        if (currentPerf < 70 && currentQuestionIndex >= 4) {
+          alert(`⚠️ Performance Alert\n\nYour current Rank Mode score is ${currentPerf}%.\n\nReturning to Study Mode to strengthen your understanding.\n\nCome back when you're ready to score 85%+!`);
+          setGameState('menu');
+          setGameMode('study');
+          return;
+        }
+      }
     } else {
       // End of quiz - trigger confetti for good scores
       const percentage = Math.round((correctCount / questions.length) * 100);
+      
+      // Save Study Mode scores for Rank Mode unlocking
+      if (gameMode === 'study' && activeChapter) {
+        const chapterId = activeChapter.id || activeChapter.chapterId;
+        const newScores = {
+          ...studyModeScores,
+          [chapterId]: {
+            percentage,
+            correctCount,
+            totalQuestions: questions.length,
+            timestamp: new Date().toISOString()
+          }
+        };
+        setStudyModeScores(newScores);
+        localStorage.setItem('rnMasteryStudyScores', JSON.stringify(newScores));
+        
+        // Show unlock message if threshold reached
+        if (percentage >= 85) {
+          setTimeout(() => {
+            alert(`🎉 Rank Mode Unlocked!\n\nYou scored ${percentage}% in Study Mode.\n\nYou can now attempt Rank Mode for this chapter!`);
+          }, 1500);
+        }
+      }
       
       if (percentage >= 70) {
         confetti({
@@ -1790,7 +1861,9 @@ Rationale: ${missed.question.rationale}
             const chapterId = chapter.id || chapter.chapterId;
             const isCompleted = submittedChapters.includes(chapter.title);
             const isChapterLocked = !unlockedChapters.includes(chapterId);
-            const isRankedLocked = gameMode === 'ranked' && isCompleted;
+            const rankModeUnlocked = isRankModeUnlocked(chapterId);
+            const studyScore = getStudyModePercentage(chapterId);
+            const isRankedLocked = gameMode === 'ranked' && (!rankModeUnlocked || isCompleted);
             const isLocked = isChapterLocked || isRankedLocked;
             
             return (
@@ -1826,6 +1899,17 @@ Rationale: ${missed.question.rationale}
                 
                 <h3 className="font-bold text-lg text-white">{chapter.title}</h3>
                 <div className="text-xs text-slate-400 mt-1">{chapter.questions?.length || 25} Questions</div>
+                
+                {/* Study Mode Score & Rank Mode Status */}
+                {gameMode === 'ranked' && (
+                  <div className="mt-2 text-xs">
+                    {rankModeUnlocked ? (
+                      <span className="text-green-400 font-semibold">✓ Unlocked ({studyScore}%)</span>
+                    ) : (
+                      <span className="text-yellow-400 font-semibold">🔒 Need 85% ({studyScore}%)</span>
+                    )}
+                  </div>
+                )}
               </button>
             );
           })}
