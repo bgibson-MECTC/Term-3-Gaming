@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Bug, Bone, Activity, AlertCircle, Brain, Trophy, ArrowRight, CheckCircle, XCircle, Flame, Split, Loader2, Sparkles, Target, Crown, Lock, GraduationCap, Save, Download } from 'lucide-react';
+import { Shield, Bug, Bone, Activity, AlertCircle, Brain, Trophy, ArrowRight, CheckCircle, XCircle, Flame, Split, Loader2, Sparkles, Target, Crown, Lock, GraduationCap, Save, Download, Settings } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "firebase/auth";
@@ -8,6 +8,7 @@ import { getFirestore, collection, addDoc, onSnapshot, query, limit, serverTimes
 // Import tag overlay system and modes engine
 import { enrichQuestions, getExamTip } from './questionTags/index';
 import { MODES, getPool } from './modes';
+import InstructorMode from './components/InstructorMode';
 
 // --- GEMINI API INTEGRATION ---
 const callGemini = async (prompt) => {
@@ -1174,6 +1175,10 @@ export default function RNMasteryGame() {
   const [hiddenOptions, setHiddenOptions] = useState([]);
   const [confidence, setConfidence] = useState(null);
   
+  // Instructor Mode
+  const [showInstructorMode, setShowInstructorMode] = useState(false);
+  const [customChapters, setCustomChapters] = useState([]);
+  
   // Weakness & Analytics Tracking
   const [weaknessStats, setWeaknessStats] = useState(() => {
     const saved = localStorage.getItem('rnMasteryWeakness');
@@ -1201,6 +1206,24 @@ export default function RNMasteryGame() {
   const [playerName, setPlayerName] = useState('');
   const [isSubmittingScore, setIsSubmittingScore] = useState(false);
   const [submittedChapters, setSubmittedChapters] = useState([]);
+
+  // --- LOAD CUSTOM CHAPTERS FROM FIREBASE ---
+  useEffect(() => {
+    const loadCustomChapters = async () => {
+      if (!db) return;
+      try {
+        const querySnapshot = await getDocs(collection(db, 'customChapters'));
+        const chapters = [];
+        querySnapshot.forEach((doc) => {
+          chapters.push({ ...doc.data(), id: doc.id });
+        });
+        setCustomChapters(chapters);
+      } catch (error) {
+        console.error('Error loading custom chapters:', error);
+      }
+    };
+    loadCustomChapters();
+  }, []);
 
   // --- FIREBASE AUTH & DATA LOADING ---
   useEffect(() => {
@@ -1523,13 +1546,13 @@ Rationale: ${missed.question.rationale}
 
         {/* Chapter Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {INITIAL_DATA.map(chapter => {
+          {[...INITIAL_DATA, ...customChapters].map(chapter => {
             const isCompleted = submittedChapters.includes(chapter.title);
             const isLocked = gameMode === 'ranked' && isCompleted;
             
             return (
               <button 
-                key={chapter.id}
+                key={chapter.id || chapter.chapterId}
                 disabled={isLocked}
                 onClick={() => startChapter(chapter)} 
                 className={`p-6 rounded-2xl border flex flex-col items-center text-center transition-all group relative overflow-hidden ${
@@ -1553,7 +1576,7 @@ Rationale: ${missed.question.rationale}
                 </div>
                 
                 <h3 className="font-bold text-lg text-white">{chapter.title}</h3>
-                <div className="text-xs text-slate-400 mt-1">25 Questions</div>
+                <div className="text-xs text-slate-400 mt-1">{chapter.questions?.length || 25} Questions</div>
               </button>
             );
           })}
@@ -1566,6 +1589,12 @@ Rationale: ${missed.question.rationale}
             className="text-slate-400 hover:text-white flex items-center text-sm transition"
           >
             <Crown className="w-4 h-4 mr-2" /> View Leaderboard
+          </button>
+          <button 
+            onClick={() => setShowInstructorMode(true)} 
+            className="text-slate-400 hover:text-white flex items-center text-sm transition"
+          >
+            <Settings className="w-4 h-4 mr-2" /> Instructor Mode
           </button>
         </div>
       </div>
@@ -1915,6 +1944,22 @@ Rationale: ${missed.question.rationale}
   };
 
   // --- MAIN RENDER ---
+  if (showInstructorMode) {
+    return <InstructorMode onExit={() => {
+      setShowInstructorMode(false);
+      // Reload custom chapters
+      if (db) {
+        getDocs(collection(db, 'customChapters')).then(querySnapshot => {
+          const chapters = [];
+          querySnapshot.forEach((doc) => {
+            chapters.push({ ...doc.data(), id: doc.id });
+          });
+          setCustomChapters(chapters);
+        });
+      }
+    }} />;
+  }
+  
   if (gameState === 'menu') return <MenuScreen />;
   if (gameState === 'playing') return <GameScreen />;
   if (gameState === 'summary') return <SummaryScreen />;
