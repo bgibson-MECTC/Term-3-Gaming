@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, BookOpen, Brain, Activity, CheckCircle, XCircle, ArrowRight, Trophy, RefreshCw, Stethoscope, AlertCircle, Shield, Bug, Bone, PersonStanding, Thermometer, Sparkles, Loader2, Star, Zap, Users, Save, Flame, Sword, Crown } from 'lucide-react';
+import { CheckCircle, XCircle, ArrowRight, Trophy, AlertCircle, Shield, Bug, Bone, Activity, Sparkles, Loader2, Star, Flame, Sword, Crown, AlertTriangle } from 'lucide-react';
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "firebase/auth";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit, serverTimestamp } from "firebase/firestore";
+import { getFirestore, collection, addDoc, onSnapshot, query, limit, serverTimestamp } from "firebase/firestore";
 
 // --- GEMINI API INTEGRATION ---
 const callGemini = async (prompt) => {
-  const apiKey = ""; // Injected at runtime by the environment
+  const apiKey = process.env.REACT_APP_GEMINI_API_KEY || "";
   const delays = [1000, 2000, 4000, 8000, 16000]; 
 
   for (let i = 0; i <= delays.length; i++) {
@@ -622,15 +622,16 @@ export default function RNMasteryGame() {
   const [showRationale, setShowRationale] = useState(false);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
-  const [riskMode, setRiskMode] = useState(false); // NEW: Risk Mechanic
-  const [completedChapters, setCompletedChapters] = useState([]);
+  const [riskMode, setRiskMode] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [correctCount, setCorrectCount] = useState(0);
+  const [incorrectCount, setIncorrectCount] = useState(0);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [leaderboardFilter, setLeaderboardFilter] = useState('all');
   
   // AI States
   const [aiExplanation, setAiExplanation] = useState(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const [aiStudyGuide, setAiStudyGuide] = useState(null);
-  const [isGuideLoading, setIsGuideLoading] = useState(false);
   
   // Firebase
   const [user, setUser] = useState(null);
@@ -650,12 +651,53 @@ export default function RNMasteryGame() {
     if (auth) return onAuthStateChanged(auth, setUser);
   }, []);
 
+  // Load saved progress on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('rnMasteryProgress');
+    if (saved && gameState === 'playing') {
+      try {
+        const data = JSON.parse(saved);
+        if (data.chapterId === activeChapter?.id) {
+          // Resume confirmation could go here
+        }
+      } catch (e) {
+        console.error('Error loading progress:', e);
+      }
+    }
+  }, [gameState, activeChapter]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (gameState !== 'playing' || showRationale) return;
+      
+      const key = e.key;
+      if (['1', '2', '3', '4'].includes(key)) {
+        const index = parseInt(key) - 1;
+        if (index < activeChapter.questions[currentQuestionIndex].options.length) {
+          setSelectedOption(index);
+        }
+      } else if (key === 'Enter' && selectedOption !== null) {
+        if (showRationale) {
+          nextQuestion();
+        } else {
+          submitAnswer();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [gameState, showRationale, selectedOption, activeChapter, currentQuestionIndex]);
+
   // --- LOGIC ---
   const startChapter = (chapter) => {
     setActiveChapter(chapter);
     setCurrentQuestionIndex(0);
     setScore(0);
     setStreak(0);
+    setCorrectCount(0);
+    setIncorrectCount(0);
     setGameState('playing');
     setSelectedOption(null);
     setShowRationale(false);
@@ -671,11 +713,27 @@ export default function RNMasteryGame() {
     return 1;
   };
 
+  const getPersonalBest = (chapterId) => {
+    const bests = JSON.parse(localStorage.getItem('rnMasteryBests') || '{}');
+    return bests[chapterId] || 0;
+  };
+
+  const savePersonalBest = (chapterId, score) => {
+    const bests = JSON.parse(localStorage.getItem('rnMasteryBests') || '{}');
+    if (score > (bests[chapterId] || 0)) {
+      bests[chapterId] = score;
+      localStorage.setItem('rnMasteryBests', JSON.stringify(bests));
+      return true; // New record!
+    }
+    return false;
+  };
+
   const submitAnswer = () => {
     if (selectedOption === null) return;
     const isCorrect = selectedOption === activeChapter.questions[currentQuestionIndex].correctIndex;
     
     if (isCorrect) {
+      setCorrectCount(correctCount + 1);
       const basePoints = 100;
       const multiplier = getMultiplier();
       let totalPoints = basePoints * multiplier;
@@ -686,6 +744,7 @@ export default function RNMasteryGame() {
       setStreak(streak + 1);
       setFeedbackMessage(riskMode ? "RISK PAID OFF! 🚀" : "Correct!");
     } else {
+      setIncorrectCount(incorrectCount + 1);
       setStreak(0);
       if (riskMode) {
         setScore(Math.max(0, score - 500)); // Lose 500 for failed risk
@@ -706,8 +765,25 @@ export default function RNMasteryGame() {
       setFeedbackMessage('');
       setRiskMode(false);
     } else {
+      const isNewRecord = savePersonalBest(activeChapter.id, score);
+      if (isNewRecord) {
+        setFeedbackMessage('🎉 NEW PERSONAL BEST!');
+      }
       setGameState('summary');
     }
+  };
+
+  const handleExit = () => {
+    if (gameState === 'playing' && currentQuestionIndex > 0) {
+      setShowExitConfirm(true);
+    } else {
+      setGameState('menu');
+    }
+  };
+
+  const confirmExit = () => {
+    setShowExitConfirm(false);
+    setGameState('menu');
   };
 
   const saveScoreToLeaderboard = async () => {
@@ -760,6 +836,10 @@ export default function RNMasteryGame() {
           });
       }, []);
 
+      const filteredScores = leaderboardFilter === 'all' 
+        ? scores 
+        : scores.filter(s => s.chapterTitle === leaderboardFilter);
+
       return (
           <div className="min-h-screen bg-slate-900 p-6 text-white font-sans flex flex-col items-center">
               <div className="w-full max-w-2xl bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
@@ -770,27 +850,51 @@ export default function RNMasteryGame() {
                       <button onClick={() => setGameState('menu')} className="px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition">Back</button>
                   </div>
                   
-                  {scores.length > 0 && (
+                  {/* Filter */}
+                  <div className="mb-6 flex gap-2 flex-wrap">
+                      <button 
+                        onClick={() => setLeaderboardFilter('all')}
+                        className={`px-3 py-1 rounded-full text-sm transition ${leaderboardFilter === 'all' ? 'bg-cyan-500 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20'}`}
+                      >
+                        All Chapters
+                      </button>
+                      {INITIAL_DATA.map(ch => (
+                        <button 
+                          key={ch.id}
+                          onClick={() => setLeaderboardFilter(ch.title)}
+                          className={`px-3 py-1 rounded-full text-sm transition ${leaderboardFilter === ch.title ? 'bg-cyan-500 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20'}`}
+                        >
+                          {ch.title.replace('Ch ', '')}
+                        </button>
+                      ))}
+                  </div>
+                  
+                  {filteredScores.length > 0 && (
                       <div className="mb-6 p-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl border border-yellow-500/30 flex items-center animate-pulse">
                           <Sword className="w-6 h-6 text-yellow-400 mr-3" />
                           <div>
                               <div className="text-xs uppercase tracking-widest text-yellow-400 font-bold">Current Champion to Beat</div>
-                              <div className="text-xl font-bold text-white">{scores[0].playerName} — {scores[0].score} pts</div>
+                              <div className="text-xl font-bold text-white">{filteredScores[0].playerName} — {filteredScores[0].score} pts</div>
                           </div>
                       </div>
                   )}
 
-                  <div className="space-y-3">
-                      {scores.map((entry, idx) => (
-                          <div key={entry.id} className="flex items-center p-4 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10 transition">
-                              <div className="w-10 font-black text-2xl text-slate-500 italic">#{idx + 1}</div>
-                              <div className="flex-1">
-                                  <div className="font-bold text-lg text-white">{entry.playerName}</div>
-                                  <div className="text-xs text-slate-400">{entry.chapterTitle}</div>
-                              </div>
-                              <div className="font-mono text-xl text-cyan-400 font-bold">{entry.score}</div>
-                          </div>
-                      ))}
+                  <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                      {filteredScores.map((entry, idx) => {
+                          const isCurrentUser = user && entry.uid === user.uid;
+                          return (
+                            <div key={entry.id} className={`flex items-center p-4 rounded-xl border transition ${isCurrentUser ? 'bg-cyan-500/20 border-cyan-500/50' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}>
+                                <div className="w-10 font-black text-2xl text-slate-500 italic">#{idx + 1}</div>
+                                <div className="flex-1">
+                                    <div className={`font-bold text-lg ${isCurrentUser ? 'text-cyan-300' : 'text-white'}`}>
+                                      {entry.playerName} {isCurrentUser && '(You)'}
+                                    </div>
+                                    <div className="text-xs text-slate-400">{entry.chapterTitle}</div>
+                                </div>
+                                <div className="font-mono text-xl text-cyan-400 font-bold">{entry.score}</div>
+                            </div>
+                          );
+                      })}
                   </div>
               </div>
           </div>
@@ -802,9 +906,36 @@ export default function RNMasteryGame() {
     return (
       <div className="min-h-screen bg-slate-900 text-white font-sans flex flex-col bg-gradient-to-br from-indigo-950 via-slate-900 to-purple-950">
         <div className="max-w-3xl mx-auto w-full p-6 flex-1 flex flex-col">
+          {/* Exit Confirmation Modal */}
+          {showExitConfirm && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+              <div className="bg-slate-800 border border-white/10 rounded-2xl p-8 max-w-md mx-4">
+                <div className="flex items-center mb-4 text-orange-400">
+                  <AlertTriangle className="w-8 h-8 mr-3" />
+                  <h3 className="text-2xl font-bold">Exit Game?</h3>
+                </div>
+                <p className="text-slate-300 mb-6">Your progress will be lost. Are you sure?</p>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => setShowExitConfirm(false)} 
+                    className="flex-1 px-4 py-3 bg-white/10 rounded-xl font-bold hover:bg-white/20 transition"
+                  >
+                    Keep Playing
+                  </button>
+                  <button 
+                    onClick={confirmExit} 
+                    className="flex-1 px-4 py-3 bg-red-600 rounded-xl font-bold hover:bg-red-700 transition"
+                  >
+                    Exit
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Top Bar */}
           <div className="flex justify-between items-center mb-8">
-            <button onClick={() => setGameState('menu')} className="text-slate-400 hover:text-white transition">← Exit</button>
+            <button onClick={handleExit} className="text-slate-400 hover:text-white transition">← Exit</button>
             <div className="flex items-center gap-4">
                {streak > 2 && (
                    <div className="px-3 py-1 bg-orange-500/20 text-orange-400 border border-orange-500/50 rounded-full text-sm font-bold flex items-center animate-bounce">
@@ -836,7 +967,7 @@ export default function RNMasteryGame() {
                 }
                 return (
                   <button key={idx} onClick={() => !showRationale && setSelectedOption(idx)} className={style}>
-                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center mr-4 text-sm font-bold">{String.fromCharCode(65 + idx)}</div>
+                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center mr-4 text-sm font-bold">{idx + 1}</div>
                     {opt}
                   </button>
                 )
@@ -944,6 +1075,10 @@ export default function RNMasteryGame() {
   // --- SUMMARY ---
   if (gameState === 'summary') {
       const rank = getRank(score);
+      const personalBest = getPersonalBest(activeChapter.id);
+      const isNewRecord = score > personalBest;
+      const percentage = Math.round((correctCount / activeChapter.questions.length) * 100);
+      
       return (
           <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
               <div className="w-full max-w-lg bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 text-center shadow-2xl animate-fade-in">
@@ -951,16 +1086,41 @@ export default function RNMasteryGame() {
                       <Trophy className="w-12 h-12 text-white" />
                   </div>
                   <h2 className="text-3xl font-black text-white mb-2">MODULE COMPLETE!</h2>
-                  <div className="inline-block px-4 py-1 rounded-full bg-white/10 text-cyan-300 font-bold text-sm mb-8">{activeChapter.title}</div>
+                  <div className="inline-block px-4 py-1 rounded-full bg-white/10 text-cyan-300 font-bold text-sm mb-4">{activeChapter.title}</div>
 
-                  <div className="grid grid-cols-2 gap-4 mb-8">
+                  {isNewRecord && (
+                    <div className="mb-4 px-4 py-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl border border-yellow-500/50 text-yellow-300 font-bold animate-pulse">
+                      🎉 NEW PERSONAL BEST! 🎉
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-3 gap-3 mb-6">
                       <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
-                          <div className="text-4xl font-black text-cyan-400">{score}</div>
-                          <div className="text-xs font-bold text-slate-500 uppercase">Final Score</div>
+                          <div className="text-3xl font-black text-cyan-400">{score}</div>
+                          <div className="text-xs font-bold text-slate-500 uppercase">Score</div>
                       </div>
-                      <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5 flex flex-col justify-center items-center">
-                          <div className="text-lg font-bold text-yellow-400 flex items-center"><Star className="w-4 h-4 mr-1" /> {rank}</div>
+                      <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
+                          <div className="text-3xl font-black text-green-400">{percentage}%</div>
+                          <div className="text-xs font-bold text-slate-500 uppercase">Accuracy</div>
+                      </div>
+                      <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
+                          <div className="text-lg font-bold text-yellow-400 flex items-center justify-center"><Star className="w-4 h-4 mr-1" />{rank.split(' ')[0]}</div>
                           <div className="text-xs font-bold text-slate-500 uppercase">Rank</div>
+                      </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3 mb-6">
+                      <div className="bg-green-500/10 p-3 rounded-xl border border-green-500/30">
+                          <div className="text-2xl font-bold text-green-400">{correctCount}</div>
+                          <div className="text-xs text-green-300">Correct</div>
+                      </div>
+                      <div className="bg-red-500/10 p-3 rounded-xl border border-red-500/30">
+                          <div className="text-2xl font-bold text-red-400">{incorrectCount}</div>
+                          <div className="text-xs text-red-300">Incorrect</div>
+                      </div>
+                      <div className="bg-purple-500/10 p-3 rounded-xl border border-purple-500/30">
+                          <div className="text-2xl font-bold text-purple-400">{personalBest}</div>
+                          <div className="text-xs text-purple-300">Prev Best</div>
                       </div>
                   </div>
 
