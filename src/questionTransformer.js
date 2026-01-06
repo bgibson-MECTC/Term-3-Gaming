@@ -18,8 +18,11 @@ export function transformToRankedQuestion(question) {
   // Transform question text into clinical scenario
   const transformedText = transformQuestionText(text, concept, skill);
   
+  // Transform options to add clinical context and vary presentation
+  const clinicalOptions = transformOptions(options, concept, skill);
+  
   // Reorder options to prevent pattern recognition
-  const { newOptions, newCorrectIndex } = shuffleOptions(options, correctIndex);
+  const { newOptions, newCorrectIndex } = shuffleOptions(clinicalOptions, correctIndex);
   
   return {
     ...question,
@@ -31,7 +34,99 @@ export function transformToRankedQuestion(question) {
     requiresRationale: true,
     correctRationaleIndex: 0, // Index of the correct rationale
     timeLimit: 30, // seconds
+    isTransformed: true, // Flag to indicate transformation
   };
+}
+
+/**
+ * Transforms answer options to add clinical urgency and vary presentation
+ * Introduces new symptoms, timeframes, or complicating factors
+ */
+function transformOptions(options, concept, skills) {
+  const transformationType = Math.floor(Math.random() * 3);
+  
+  // TYPE 1: Add time pressure or vital signs (40% chance)
+  if (transformationType === 0) {
+    return options.map(opt => addTimeOrVitals(opt));
+  }
+  
+  // TYPE 2: Add patient context (30% chance)
+  if (transformationType === 1) {
+    return options.map(opt => addPatientContext(opt));
+  }
+  
+  // TYPE 3: Keep original but add clinical outcome (30% chance)
+  return options.map(opt => addClinicalOutcome(opt));
+}
+
+/**
+ * Adds time urgency or vital sign information to options
+ */
+function addTimeOrVitals(option) {
+  // Check if option already has clinical detail
+  if (option.length > 60 || option.includes('BP') || option.includes('within')) {
+    return option;
+  }
+  
+  const enhancements = [
+    ` within the next 5 minutes`,
+    ` immediately to prevent deterioration`,
+    ` while monitoring vital signs`,
+    ` before condition worsens`,
+    ` as first priority`,
+  ];
+  
+  // 50% chance to add enhancement
+  if (Math.random() > 0.5) {
+    return option + enhancements[Math.floor(Math.random() * enhancements.length)];
+  }
+  
+  return option;
+}
+
+/**
+ * Adds patient context to make options more scenario-based
+ */
+function addPatientContext(option) {
+  // Don't modify if already detailed
+  if (option.length > 60) return option;
+  
+  const contexts = [
+    `considering patient history`,
+    `noting recent lab changes`,
+    `observing current symptoms`,
+    `based on assessment findings`,
+  ];
+  
+  // 40% chance to add context
+  if (Math.random() > 0.6) {
+    const context = contexts[Math.floor(Math.random() * contexts.length)];
+    return `${option} - ${context}`;
+  }
+  
+  return option;
+}
+
+/**
+ * Adds expected clinical outcome to option
+ */
+function addClinicalOutcome(option) {
+  // Don't modify if already detailed
+  if (option.length > 60) return option;
+  
+  const outcomes = [
+    `to prevent complications`,
+    `to stabilize condition`,
+    `to ensure safety`,
+    `to reduce risk`,
+  ];
+  
+  // 30% chance to add outcome
+  if (Math.random() > 0.7) {
+    return `${option} ${outcomes[Math.floor(Math.random() * outcomes.length)]}`;
+  }
+  
+  return option;
 }
 
 /**
@@ -64,20 +159,101 @@ function addClinicalUrgency(text) {
 
 /**
  * Converts knowledge-based question into clinical scenario
+ * Transforms question type to emphasize clinical reasoning over recall
  */
 function convertToScenario(text, concept, skills) {
-  // Check if it's asking for teaching/education
-  if (skills?.includes('TEACHING_ERROR') || text.toLowerCase().includes('teaching')) {
-    return `A patient asks the nurse about ${concept || 'this topic'}. ${text}`;
+  // TRANSFORMATION TYPE 1: Teaching Error → Patient Misunderstanding
+  if (skills?.includes('TEACHING_ERROR') || text.toLowerCase().includes('teaching') || text.toLowerCase().includes('indicates the need for further')) {
+    return convertToPatientMisunderstanding(text, concept);
   }
   
-  // Check if it's assessment
-  if (skills?.includes('ASSESSMENT') || text.toLowerCase().includes('correlate')) {
-    return `During assessment, the nurse notes findings related to ${concept || 'this condition'}. ${text}`;
+  // TRANSFORMATION TYPE 2: Definition/Correlation → Clinical Finding Interpretation
+  if (text.toLowerCase().includes('correlates') || text.toLowerCase().includes('function of')) {
+    return convertToFindingInterpretation(text, concept);
   }
   
-  // Default: add clinical context
-  return `In caring for a patient with ${concept || 'this condition'}, the nurse considers: ${text}`;
+  // TRANSFORMATION TYPE 3: Identification → Prioritization
+  if (text.toLowerCase().includes('which type') || text.toLowerCase().includes('which is')) {
+    return convertToPrioritization(text, concept);
+  }
+  
+  // TRANSFORMATION TYPE 4: Knowledge Question → Consequence/Intervention Question
+  if (skills?.includes('PRIORITY') || text.toLowerCase().includes('most appropriate')) {
+    return convertToConsequence(text, concept);
+  }
+  
+  // TRANSFORMATION TYPE 5: Lab/Assessment → Immediate Action Needed
+  if (skills?.includes('LAB_INTERPRETATION') || text.toLowerCase().includes('lab') || text.toLowerCase().includes('test')) {
+    return convertToImmediateAction(text, concept);
+  }
+  
+  // Default: add clinical context with urgency
+  return addClinicalUrgency(`In caring for a patient with ${concept || 'this condition'}, ${text.charAt(0).toLowerCase()}${text.slice(1)}`);
+}
+
+/**
+ * TRANSFORMATION 1: Teaching → Patient Misunderstanding with Complication Risk
+ * Example: "Which statement needs teaching?" → "Which statement puts patient at risk?"
+ */
+function convertToPatientMisunderstanding(text, concept) {
+  const clinicalRisks = [
+    `A patient with ${concept || 'this condition'} makes the following statement. Which indicates a misunderstanding that could lead to complications?`,
+    `During discharge teaching for ${concept || 'this condition'}, which patient statement requires immediate intervention to prevent adverse outcomes?`,
+    `The nurse is evaluating understanding of ${concept || 'this condition'}. Which statement suggests the patient is at risk for poor outcomes?`,
+  ];
+  return clinicalRisks[Math.floor(Math.random() * clinicalRisks.length)];
+}
+
+/**
+ * TRANSFORMATION 2: Correlation/Function → Clinical Finding Interpretation  
+ * Example: "Function of thymus?" → "Patient with thymus disorder shows which finding?"
+ */
+function convertToFindingInterpretation(text, concept) {
+  const interpretations = [
+    `A patient presents with abnormal ${concept || 'findings'}. The nurse anticipates which clinical manifestation will require priority intervention?`,
+    `During assessment of ${concept || 'this system'}, which finding indicates the most urgent need for intervention?`,
+    `The nurse notes changes in ${concept || 'function'}. Which assessment finding suggests immediate risk to the patient?`,
+  ];
+  return interpretations[Math.floor(Math.random() * interpretations.length)];
+}
+
+/**
+ * TRANSFORMATION 3: Identification → Prioritization/Consequence
+ * Example: "Which type releases heparin?" → "Patient with heparin response - what's priority?"
+ */
+function convertToPrioritization(text, concept) {
+  const priorities = [
+    `A patient shows signs consistent with ${concept || 'this process'}. Which assessment finding requires the nurse to act first?`,
+    `In a patient experiencing ${concept || 'this condition'}, which finding indicates the highest priority for immediate intervention?`,
+    `The nurse is caring for multiple patients. Which assessment finding related to ${concept || 'this system'} requires immediate attention?`,
+  ];
+  return priorities[Math.floor(Math.random() * priorities.length)];
+}
+
+/**
+ * TRANSFORMATION 4: Appropriate Action → Preventing Complications
+ * Example: "Most appropriate action?" → "To prevent which complication should nurse do X?"
+ */
+function convertToConsequence(text, concept) {
+  const consequences = [
+    `To prevent complications in a patient with ${concept || 'this condition'}, the nurse's priority action is:`,
+    `A patient with ${concept || 'this condition'} is at risk for deterioration. Which intervention should the nurse implement first?`,
+    `The nurse identifies early signs of ${concept || 'complications'}. Which action will prevent further decline?`,
+  ];
+  return consequences[Math.floor(Math.random() * consequences.length)];
+}
+
+/**
+ * TRANSFORMATION 5: Lab/Test → Immediate Clinical Decision
+ * Example: "What does test measure?" → "Abnormal result found - what's priority?"
+ */
+function convertToImmediateAction(text, concept) {
+  const actions = [
+    `A patient's lab results show abnormalities related to ${concept || 'this system'}. Which finding requires immediate notification of the provider?`,
+    `During review of diagnostic tests for ${concept || 'this condition'}, which result indicates the need for urgent intervention?`,
+    `The nurse receives critical lab values related to ${concept || 'function'}. Which finding poses the greatest immediate threat?`,
+  ];
+  return actions[Math.floor(Math.random() * actions.length)];
 }
 
 /**
