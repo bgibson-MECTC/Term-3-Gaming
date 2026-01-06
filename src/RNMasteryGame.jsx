@@ -1,8 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, ArrowRight, Trophy, AlertCircle, Shield, Bug, Bone, Activity, Sparkles, Loader2, Star, Flame, Sword, Crown, AlertTriangle } from 'lucide-react';
+import { Shield, Bug, Bone, Activity, AlertCircle } from 'lucide-react';
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "firebase/auth";
 import { getFirestore, collection, addDoc, onSnapshot, query, limit, serverTimestamp } from "firebase/firestore";
+
+// Import components
+import ChapterSelector from './components/ChapterSelector';
+import Question from './components/Question';
+import ScoreBoard from './components/ScoreBoard';
+import ProgressBar from './components/ProgressBar';
+import Summary from './components/Summary';
+import Leaderboard from './components/Leaderboard';
+import ExitConfirmModal from './components/ExitConfirmModal';
 
 // --- GEMINI API INTEGRATION ---
 const callGemini = async (prompt) => {
@@ -688,6 +697,7 @@ export default function RNMasteryGame() {
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState, showRationale, selectedOption, activeChapter, currentQuestionIndex]);
 
   // --- LOGIC ---
@@ -824,7 +834,7 @@ export default function RNMasteryGame() {
 
   // --- SCREENS ---
   
-  const Leaderboard = () => {
+  const LeaderboardScreen = () => {
       const [scores, setScores] = useState([]);
       useEffect(() => {
           if (!db) return;
@@ -836,68 +846,15 @@ export default function RNMasteryGame() {
           });
       }, []);
 
-      const filteredScores = leaderboardFilter === 'all' 
-        ? scores 
-        : scores.filter(s => s.chapterTitle === leaderboardFilter);
-
       return (
-          <div className="min-h-screen bg-slate-900 p-6 text-white font-sans flex flex-col items-center">
-              <div className="w-full max-w-2xl bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
-                  <div className="flex justify-between items-center mb-8">
-                      <h2 className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-orange-500 flex items-center">
-                          <Crown className="w-8 h-8 mr-3 text-yellow-400" /> CLASS LEGENDS
-                      </h2>
-                      <button onClick={() => setGameState('menu')} className="px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition">Back</button>
-                  </div>
-                  
-                  {/* Filter */}
-                  <div className="mb-6 flex gap-2 flex-wrap">
-                      <button 
-                        onClick={() => setLeaderboardFilter('all')}
-                        className={`px-3 py-1 rounded-full text-sm transition ${leaderboardFilter === 'all' ? 'bg-cyan-500 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20'}`}
-                      >
-                        All Chapters
-                      </button>
-                      {INITIAL_DATA.map(ch => (
-                        <button 
-                          key={ch.id}
-                          onClick={() => setLeaderboardFilter(ch.title)}
-                          className={`px-3 py-1 rounded-full text-sm transition ${leaderboardFilter === ch.title ? 'bg-cyan-500 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20'}`}
-                        >
-                          {ch.title.replace('Ch ', '')}
-                        </button>
-                      ))}
-                  </div>
-                  
-                  {filteredScores.length > 0 && (
-                      <div className="mb-6 p-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl border border-yellow-500/30 flex items-center animate-pulse">
-                          <Sword className="w-6 h-6 text-yellow-400 mr-3" />
-                          <div>
-                              <div className="text-xs uppercase tracking-widest text-yellow-400 font-bold">Current Champion to Beat</div>
-                              <div className="text-xl font-bold text-white">{filteredScores[0].playerName} — {filteredScores[0].score} pts</div>
-                          </div>
-                      </div>
-                  )}
-
-                  <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
-                      {filteredScores.map((entry, idx) => {
-                          const isCurrentUser = user && entry.uid === user.uid;
-                          return (
-                            <div key={entry.id} className={`flex items-center p-4 rounded-xl border transition ${isCurrentUser ? 'bg-cyan-500/20 border-cyan-500/50' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}>
-                                <div className="w-10 font-black text-2xl text-slate-500 italic">#{idx + 1}</div>
-                                <div className="flex-1">
-                                    <div className={`font-bold text-lg ${isCurrentUser ? 'text-cyan-300' : 'text-white'}`}>
-                                      {entry.playerName} {isCurrentUser && '(You)'}
-                                    </div>
-                                    <div className="text-xs text-slate-400">{entry.chapterTitle}</div>
-                                </div>
-                                <div className="font-mono text-xl text-cyan-400 font-bold">{entry.score}</div>
-                            </div>
-                          );
-                      })}
-                  </div>
-              </div>
-          </div>
+        <Leaderboard
+          scores={scores}
+          user={user}
+          filter={leaderboardFilter}
+          chapters={INITIAL_DATA}
+          onFilterChange={setLeaderboardFilter}
+          onBack={() => setGameState('menu')}
+        />
       );
   };
 
@@ -908,250 +865,95 @@ export default function RNMasteryGame() {
         <div className="max-w-3xl mx-auto w-full p-6 flex-1 flex flex-col">
           {/* Exit Confirmation Modal */}
           {showExitConfirm && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-              <div className="bg-slate-800 border border-white/10 rounded-2xl p-8 max-w-md mx-4">
-                <div className="flex items-center mb-4 text-orange-400">
-                  <AlertTriangle className="w-8 h-8 mr-3" />
-                  <h3 className="text-2xl font-bold">Exit Game?</h3>
-                </div>
-                <p className="text-slate-300 mb-6">Your progress will be lost. Are you sure?</p>
-                <div className="flex gap-3">
-                  <button 
-                    onClick={() => setShowExitConfirm(false)} 
-                    className="flex-1 px-4 py-3 bg-white/10 rounded-xl font-bold hover:bg-white/20 transition"
-                  >
-                    Keep Playing
-                  </button>
-                  <button 
-                    onClick={confirmExit} 
-                    className="flex-1 px-4 py-3 bg-red-600 rounded-xl font-bold hover:bg-red-700 transition"
-                  >
-                    Exit
-                  </button>
-                </div>
-              </div>
-            </div>
+            <ExitConfirmModal 
+              onCancel={() => setShowExitConfirm(false)}
+              onConfirm={confirmExit}
+            />
           )}
 
           {/* Top Bar */}
           <div className="flex justify-between items-center mb-8">
             <button onClick={handleExit} className="text-slate-400 hover:text-white transition">← Exit</button>
-            <div className="flex items-center gap-4">
-               {streak > 2 && (
-                   <div className="px-3 py-1 bg-orange-500/20 text-orange-400 border border-orange-500/50 rounded-full text-sm font-bold flex items-center animate-bounce">
-                       <Flame className="w-4 h-4 mr-1" /> {streak}x Streak ({getMultiplier()}x Multiplier)
-                   </div>
-               )}
-               <div className="font-mono text-2xl font-black text-cyan-400">{score}</div>
-            </div>
+            <ScoreBoard score={score} streak={streak} getMultiplier={getMultiplier} />
           </div>
 
-          {/* Question Card */}
+          {/* Question Card with Progress Bar */}
           <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-3xl p-8 mb-6 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-white/10">
-                <div className="h-full bg-cyan-500 transition-all duration-500" style={{ width: `${((currentQuestionIndex + 1) / activeChapter.questions.length) * 100}%` }} />
-            </div>
+            <ProgressBar currentIndex={currentQuestionIndex} total={activeChapter.questions.length} />
             
-            <h2 className="text-2xl font-bold leading-relaxed mb-8 mt-2">{q.text}</h2>
-
-            <div className="space-y-3">
-              {q.options.map((opt, idx) => {
-                let style = "p-5 rounded-xl border-2 text-left font-medium transition-all duration-200 w-full flex items-center ";
-                if (showRationale) {
-                  if (idx === q.correctIndex) style += "border-green-500 bg-green-500/20 text-green-100";
-                  else if (idx === selectedOption) style += "border-red-500 bg-red-500/20 text-red-100";
-                  else style += "border-white/5 opacity-50";
-                } else {
-                  if (selectedOption === idx) style += "border-cyan-500 bg-cyan-500/20 text-cyan-100";
-                  else style += "border-white/10 hover:bg-white/5 hover:border-white/30";
-                }
-                return (
-                  <button key={idx} onClick={() => !showRationale && setSelectedOption(idx)} className={style}>
-                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center mr-4 text-sm font-bold">{idx + 1}</div>
-                    {opt}
-                  </button>
-                )
-              })}
-            </div>
+            <Question 
+              question={q}
+              selectedOption={selectedOption}
+              showRationale={showRationale}
+              feedbackMessage={feedbackMessage}
+              aiExplanation={aiExplanation}
+              isAiLoading={isAiLoading}
+              onSelectOption={setSelectedOption}
+              onAiTutor={handleAiTutor}
+              onNextQuestion={nextQuestion}
+            />
           </div>
 
           {/* Actions */}
-          <div className="mt-auto sticky bottom-6">
-            {!showRationale ? (
-               <div className="flex gap-4">
-                   <button 
-                     onClick={() => setRiskMode(!riskMode)}
-                     className={`flex-1 py-4 rounded-xl font-black text-lg transition-all flex items-center justify-center border-2 ${riskMode ? 'bg-red-600 border-red-500 text-white animate-pulse' : 'bg-transparent border-red-500/50 text-red-400 hover:bg-red-500/10'}`}
-                   >
-                       {riskMode ? "⚠️ RISK ACTIVE (-500/+DOUBLE)" : "🎲 RISK IT (+DOUBLE PTS)"}
-                   </button>
-                   <button 
-                     onClick={submitAnswer}
-                     disabled={selectedOption === null}
-                     className={`flex-[2] py-4 rounded-xl font-black text-lg transition-all shadow-lg ${selectedOption === null ? 'bg-slate-700 text-slate-500' : 'bg-cyan-500 text-white hover:bg-cyan-400 hover:scale-[1.02]'}`}
-                   >
-                       LOCK IN
-                   </button>
-               </div>
-            ) : (
-                <div className="animate-in slide-in-from-bottom duration-300">
-                    <div className={`p-6 rounded-2xl mb-4 border ${selectedOption === q.correctIndex ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
-                        <div className="font-bold text-lg mb-2 flex items-center">
-                            {selectedOption === q.correctIndex ? <CheckCircle className="mr-2 text-green-400" /> : <XCircle className="mr-2 text-red-400" />}
-                            {feedbackMessage}
-                        </div>
-                        <p className="text-slate-300 leading-relaxed">{q.rationale}</p>
-                        
-                        {/* AI Section */}
-                        <div className="mt-4 pt-4 border-t border-white/10">
-                            {!aiExplanation ? (
-                                <button onClick={handleAiTutor} disabled={isAiLoading} className="text-sm text-purple-300 hover:text-purple-200 flex items-center">
-                                    {isAiLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                                    Generate Fun Mnemonic
-                                </button>
-                            ) : (
-                                <div className="text-sm text-purple-200 bg-purple-500/10 p-3 rounded-lg border border-purple-500/20 mt-2">
-                                    <Sparkles className="w-4 h-4 inline mr-2" /> {aiExplanation}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                    <button onClick={nextQuestion} className="w-full py-4 bg-white text-slate-900 rounded-xl font-black text-lg hover:bg-slate-200 transition-all flex items-center justify-center">
-                        NEXT <ArrowRight className="ml-2" />
-                    </button>
-                </div>
-            )}
-          </div>
+          {!showRationale && (
+            <div className="mt-auto sticky bottom-6">
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => setRiskMode(!riskMode)}
+                  className={`flex-1 py-4 rounded-xl font-black text-lg transition-all flex items-center justify-center border-2 ${riskMode ? 'bg-red-600 border-red-500 text-white animate-pulse' : 'bg-transparent border-red-500/50 text-red-400 hover:bg-red-500/10'}`}
+                >
+                  {riskMode ? "⚠️ RISK ACTIVE (-500/+DOUBLE)" : "🎲 RISK IT (+DOUBLE PTS)"}
+                </button>
+                <button 
+                  onClick={submitAnswer}
+                  disabled={selectedOption === null}
+                  className={`flex-[2] py-4 rounded-xl font-black text-lg transition-all shadow-lg ${selectedOption === null ? 'bg-slate-700 text-slate-500' : 'bg-cyan-500 text-white hover:bg-cyan-400 hover:scale-[1.02]'}`}
+                >
+                  LOCK IN
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
   };
 
-  // --- MENU ---
+  // --- MAIN RENDER ---
   if (gameState === 'menu') {
-      return (
-          <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 bg-[url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80')] bg-cover bg-center bg-no-repeat">
-              <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-sm" />
-              <div className="relative z-10 w-full max-w-4xl">
-                  <div className="text-center mb-12">
-                      <h1 className="text-6xl font-black text-white mb-4 tracking-tight drop-shadow-lg">
-                          RN <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">MASTERY</span>
-                      </h1>
-                      <p className="text-xl text-slate-400">Classroom Competitive Edition v2.0</p>
-                  </div>
-                  
-                  <div className="grid md:grid-cols-2 gap-6">
-                      <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md">
-                          <h3 className="text-slate-400 font-bold mb-4 uppercase text-sm tracking-wider">Select Module</h3>
-                          <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                              {INITIAL_DATA.map(ch => (
-                                  <button key={ch.id} onClick={() => startChapter(ch)} className="w-full p-4 bg-white/5 hover:bg-cyan-500/20 border border-white/5 hover:border-cyan-500/50 rounded-xl text-left transition-all group">
-                                      <div className="flex items-center">
-                                          <div className="p-2 bg-white/10 rounded-lg mr-4 text-white group-hover:text-cyan-300">{ch.icon}</div>
-                                          <div>
-                                              <div className="font-bold text-white group-hover:text-cyan-300">{ch.title}</div>
-                                              <div className="text-xs text-slate-400">{ch.questions.length} Questions</div>
-                                          </div>
-                                      </div>
-                                  </button>
-                              ))}
-                          </div>
-                      </div>
-
-                      <div className="bg-gradient-to-br from-purple-900/50 to-indigo-900/50 border border-white/10 rounded-2xl p-8 backdrop-blur-md flex flex-col justify-center items-center text-center">
-                          <Trophy className="w-16 h-16 text-yellow-400 mb-6 drop-shadow-glow" />
-                          <h2 className="text-2xl font-bold text-white mb-2">Class Leaderboard</h2>
-                          <p className="text-slate-300 mb-8">Compete with your classmates for the top spot!</p>
-                          <button onClick={() => setGameState('leaderboard')} className="px-8 py-3 bg-white text-slate-900 font-bold rounded-full hover:scale-105 transition-transform">
-                              View Rankings
-                          </button>
-                      </div>
-                  </div>
-              </div>
-          </div>
-      );
+    return (
+      <ChapterSelector 
+        chapters={INITIAL_DATA}
+        onSelectChapter={startChapter}
+        onViewLeaderboard={() => setGameState('leaderboard')}
+      />
+    );
   }
 
-  // --- SUMMARY ---
   if (gameState === 'summary') {
-      const rank = getRank(score);
-      const personalBest = getPersonalBest(activeChapter.id);
-      const isNewRecord = score > personalBest;
-      const percentage = Math.round((correctCount / activeChapter.questions.length) * 100);
-      
-      return (
-          <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
-              <div className="w-full max-w-lg bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 text-center shadow-2xl animate-fade-in">
-                  <div className="w-24 h-24 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-orange-500/50 animate-bounce">
-                      <Trophy className="w-12 h-12 text-white" />
-                  </div>
-                  <h2 className="text-3xl font-black text-white mb-2">MODULE COMPLETE!</h2>
-                  <div className="inline-block px-4 py-1 rounded-full bg-white/10 text-cyan-300 font-bold text-sm mb-4">{activeChapter.title}</div>
-
-                  {isNewRecord && (
-                    <div className="mb-4 px-4 py-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl border border-yellow-500/50 text-yellow-300 font-bold animate-pulse">
-                      🎉 NEW PERSONAL BEST! 🎉
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-3 gap-3 mb-6">
-                      <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
-                          <div className="text-3xl font-black text-cyan-400">{score}</div>
-                          <div className="text-xs font-bold text-slate-500 uppercase">Score</div>
-                      </div>
-                      <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
-                          <div className="text-3xl font-black text-green-400">{percentage}%</div>
-                          <div className="text-xs font-bold text-slate-500 uppercase">Accuracy</div>
-                      </div>
-                      <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
-                          <div className="text-lg font-bold text-yellow-400 flex items-center justify-center"><Star className="w-4 h-4 mr-1" />{rank.split(' ')[0]}</div>
-                          <div className="text-xs font-bold text-slate-500 uppercase">Rank</div>
-                      </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3 mb-6">
-                      <div className="bg-green-500/10 p-3 rounded-xl border border-green-500/30">
-                          <div className="text-2xl font-bold text-green-400">{correctCount}</div>
-                          <div className="text-xs text-green-300">Correct</div>
-                      </div>
-                      <div className="bg-red-500/10 p-3 rounded-xl border border-red-500/30">
-                          <div className="text-2xl font-bold text-red-400">{incorrectCount}</div>
-                          <div className="text-xs text-red-300">Incorrect</div>
-                      </div>
-                      <div className="bg-purple-500/10 p-3 rounded-xl border border-purple-500/30">
-                          <div className="text-2xl font-bold text-purple-400">{personalBest}</div>
-                          <div className="text-xs text-purple-300">Prev Best</div>
-                      </div>
-                  </div>
-
-                  <div className="bg-white/5 p-6 rounded-2xl border border-white/10 mb-6">
-                      <h3 className="text-white font-bold mb-4">Submit to Leaderboard</h3>
-                      <div className="flex gap-2">
-                          <input 
-                             type="text" 
-                             placeholder="Your Name" 
-                             value={playerName}
-                             onChange={e => setPlayerName(e.target.value)}
-                             className="flex-1 bg-slate-900/80 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-cyan-500 transition"
-                          />
-                          <button 
-                             onClick={saveScoreToLeaderboard}
-                             disabled={!playerName.trim() || isSubmittingScore}
-                             className="bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg px-6 transition disabled:opacity-50"
-                          >
-                             {isSubmittingScore ? <Loader2 className="animate-spin" /> : "Save"}
-                          </button>
-                      </div>
-                  </div>
-
-                  <button onClick={() => setGameState('menu')} className="text-slate-400 hover:text-white transition">Skip & Return to Menu</button>
-              </div>
-          </div>
-      );
+    const rank = getRank(score);
+    const personalBest = getPersonalBest(activeChapter.id);
+    
+    return (
+      <Summary 
+        score={score}
+        correctCount={correctCount}
+        incorrectCount={incorrectCount}
+        totalQuestions={activeChapter.questions.length}
+        chapterTitle={activeChapter.title}
+        personalBest={personalBest}
+        rank={rank}
+        playerName={playerName}
+        isSubmitting={isSubmittingScore}
+        onPlayerNameChange={(e) => setPlayerName(e.target.value)}
+        onSaveScore={saveScoreToLeaderboard}
+        onReturnToMenu={() => setGameState('menu')}
+      />
+    );
   }
 
   if (gameState === 'playing') return <GameScreen />;
-  if (gameState === 'leaderboard') return <Leaderboard />;
+  if (gameState === 'leaderboard') return <LeaderboardScreen />;
   
   return null;
 }
