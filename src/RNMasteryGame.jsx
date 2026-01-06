@@ -1176,6 +1176,7 @@ export default function RNMasteryGame() {
   // Instructor Mode
   const [showInstructorMode, setShowInstructorMode] = useState(false);
   const [customChapters, setCustomChapters] = useState([]);
+  const [unlockedChapters, setUnlockedChapters] = useState([]);
   
   // Weakness & Analytics Tracking
   const [weaknessStats, setWeaknessStats] = useState(() => {
@@ -1222,6 +1223,26 @@ export default function RNMasteryGame() {
       }
     };
     loadCustomChapters();
+    
+    // Load unlocked chapters from Firestore
+    const loadUnlockedChapters = async () => {
+      if (!db) return;
+      try {
+        const docSnap = await getDocs(collection(db, 'settings'));
+        const settingsDoc = docSnap.docs.find(d => d.id === 'chapterAccess');
+        if (settingsDoc) {
+          setUnlockedChapters(settingsDoc.data().unlocked || []);
+        } else {
+          // If no settings doc exists, unlock all by default
+          setUnlockedChapters(['ch18', 'ch19', 'ch20', 'ch21', 'ch22', 'quiz1']);
+        }
+      } catch (error) {
+        console.error('Error loading chapter locks:', error);
+        // Default: unlock all built-in chapters on error
+        setUnlockedChapters(['ch18', 'ch19', 'ch20', 'ch21', 'ch22', 'quiz1']);
+      }
+    };
+    loadUnlockedChapters();
   }, []);
 
   // --- FIREBASE AUTH & DATA LOADING ---
@@ -1258,16 +1279,27 @@ export default function RNMasteryGame() {
     // Trigger authentication immediately
     const initAuth = async () => {
       try {
+        console.log('Starting auth initialization...');
         if (typeof window !== 'undefined' && window.__initial_auth_token) {
           console.log('Signing in with custom token');
           await signInWithCustomToken(auth, window.__initial_auth_token);
         } else {
-          console.log('Signing in anonymously');
+          console.log('Attempting anonymous sign in...');
           const result = await signInAnonymously(auth);
           console.log('Anonymous sign in successful:', result.user.uid);
         }
       } catch (error) {
-        console.error('Auth initialization error:', error);
+        console.error('Auth initialization FAILED:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        
+        // Show alert for specific errors
+        if (error.code === 'auth/operation-not-allowed') {
+          alert('⚠️ Anonymous authentication is disabled.\n\nPlease enable it in:\nFirebase Console → Authentication → Sign-in method → Anonymous → Enable');
+        } else {
+          alert('Authentication failed: ' + error.message);
+        }
+        
         setFirebaseStatus({ connected: true, authenticated: false, initializing: false });
       }
     };
@@ -1641,7 +1673,9 @@ Rationale: ${missed.question.rationale}
           {[...INITIAL_DATA, ...customChapters].map(chapter => {
             const chapterId = chapter.id || chapter.chapterId;
             const isCompleted = submittedChapters.includes(chapter.title);
-            const isLocked = gameMode === 'ranked' && isCompleted;
+            const isChapterLocked = !unlockedChapters.includes(chapterId);
+            const isRankedLocked = gameMode === 'ranked' && isCompleted;
+            const isLocked = isChapterLocked || isRankedLocked;
             
             return (
               <button 
@@ -1657,6 +1691,12 @@ Rationale: ${missed.question.rationale}
                 {isCompleted && (
                   <div className="absolute top-2 right-2 bg-green-500/20 text-green-400 px-2 py-1 rounded-full text-xs font-bold flex items-center">
                     <CheckCircle className="w-3 h-3 mr-1" /> Ranked
+                  </div>
+                )}
+                
+                {isChapterLocked && (
+                  <div className="absolute top-2 left-2 bg-red-500/20 text-red-400 px-2 py-1 rounded-full text-xs font-bold flex items-center">
+                    <Lock className="w-3 h-3 mr-1" /> Locked
                   </div>
                 )}
                 
@@ -2075,7 +2115,7 @@ Rationale: ${missed.question.rationale}
   if (showInstructorMode) {
     return <InstructorMode onExit={() => {
       setShowInstructorMode(false);
-      // Reload custom chapters
+      // Reload custom chapters and unlocked chapters
       if (db) {
         getDocs(collection(db, 'customChapters')).then(querySnapshot => {
           const chapters = [];
@@ -2083,6 +2123,13 @@ Rationale: ${missed.question.rationale}
             chapters.push({ ...doc.data(), id: doc.id });
           });
           setCustomChapters(chapters);
+        });
+        
+        getDocs(collection(db, 'settings')).then(querySnapshot => {
+          const settingsDoc = querySnapshot.docs.find(d => d.id === 'chapterAccess');
+          if (settingsDoc) {
+            setUnlockedChapters(settingsDoc.data().unlocked || []);
+          }
         });
       }
     }} />;
