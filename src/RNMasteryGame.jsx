@@ -1477,7 +1477,7 @@ export default function RNMasteryGame() {
       setHiddenOptions([]); // Reset hidden options for new question
     } else {
       const isNewRecord = savePersonalBest(activeChapter.id, score);
-      const percentage = Math.round((correctCount / totalQuestions) * 100);
+      const percentage = Math.round((correctCount / activeChapter.questions.length) * 100);
       
       // Victory confetti for good scores (70% or higher)
       if (percentage >= 70) {

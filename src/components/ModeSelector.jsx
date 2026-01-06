@@ -1,12 +1,12 @@
 import React from 'react';
-import { Shield, AlertCircle, Target, Flask, ListOrdered, Lock, RotateCcw, Crown } from 'lucide-react';
+import { Shield, AlertCircle, Target, Beaker, ListOrdered, Lock, RotateCcw, Crown } from 'lucide-react';
 import { MODES, MODE_INFO } from '../modes';
 
 const MODE_ICONS = {
   [MODES.CHAPTER_REVIEW]: Shield,
   [MODES.EXAM_TRAPS]: AlertCircle,
   [MODES.PRIORITY_FIRST]: Target,
-  [MODES.LABS_DIAGNOSTICS]: Flask,
+  [MODES.LABS_DIAGNOSTICS]: Beaker,
   [MODES.SEQUENCING]: ListOrdered,
   [MODES.BARRIER_BOOTCAMP]: Lock,
   [MODES.MISSED_REMATCH]: RotateCcw,
