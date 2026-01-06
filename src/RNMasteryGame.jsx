@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Bug, Bone, Activity, AlertCircle, Brain, Trophy, ArrowRight, CheckCircle, XCircle, Flame, Split, Loader2, Sparkles, Target, Crown, Lock, GraduationCap, Save, Download, Settings } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { initializeApp } from "firebase/app";
-import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "firebase/auth";
-import { getFirestore, collection, addDoc, onSnapshot, query, limit, serverTimestamp, getDocs, where } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, query, limit, serverTimestamp, getDocs, where } from "firebase/firestore";
+import { signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "firebase/auth";
+
+// Import Firebase config
+import { db, auth } from './firebase';
 
 // Import tag overlay system and modes engine
 import { enrichQuestions, getExamTip } from './questionTags/index';
@@ -12,7 +14,7 @@ import InstructorMode from './components/InstructorMode';
 
 // --- GEMINI API INTEGRATION ---
 const callGemini = async (prompt) => {
-  const apiKey = process.env.REACT_APP_GEMINI_API_KEY || "";
+  const apiKey = process.env.REACT_APP_GEMINI_API_KEY || "AIzaSyAT-wsupPN4ROtkDzkYVJ9yRJiGa4LvvV8";
   const delays = [1000, 2000, 4000, 8000, 16000]; 
 
   for (let i = 0; i <= delays.length; i++) {
@@ -38,17 +40,10 @@ const callGemini = async (prompt) => {
   }
 };
 
-// --- FIREBASE SETUP ---
-let db, auth;
+// --- APP ID ---
 let appId = 'rn-mastery-game';
-try {
-  const firebaseConfig = JSON.parse(window.__firebase_config || '{}');
-  const app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
-  if (typeof window.__app_id !== 'undefined') appId = window.__app_id;
-} catch (e) {
-  console.error("Firebase init error:", e);
+if (typeof window !== 'undefined' && typeof window.__app_id !== 'undefined') {
+  appId = window.__app_id;
 }
 
 // --- DATA ---
@@ -1178,6 +1173,7 @@ export default function RNMasteryGame() {
   // Instructor Mode
   const [showInstructorMode, setShowInstructorMode] = useState(false);
   const [customChapters, setCustomChapters] = useState([]);
+  const [unlockedChapters, setUnlockedChapters] = useState(['ch18', 'ch19', 'ch20']); // Default unlocked chapters
   
   // Weakness & Analytics Tracking
   const [weaknessStats, setWeaknessStats] = useState(() => {
@@ -1206,6 +1202,7 @@ export default function RNMasteryGame() {
   const [playerName, setPlayerName] = useState('');
   const [isSubmittingScore, setIsSubmittingScore] = useState(false);
   const [submittedChapters, setSubmittedChapters] = useState([]);
+  const [firebaseStatus, setFirebaseStatus] = useState({ connected: false, authenticated: false });
 
   // --- LOAD CUSTOM CHAPTERS FROM FIREBASE ---
   useEffect(() => {
@@ -1223,22 +1220,58 @@ export default function RNMasteryGame() {
       }
     };
     loadCustomChapters();
+    
+    // Load unlocked chapters
+    const loadUnlockedChapters = async () => {
+      if (!db) return;
+      try {
+        const docRef = await getDocs(collection(db, 'settings'));
+        const settingsDoc = docRef.docs.find(doc => doc.id === 'chapterAccess');
+        if (settingsDoc) {
+          setUnlockedChapters(settingsDoc.data().unlocked || []);
+        }
+      } catch (error) {
+        console.error('Error loading chapter locks:', error);
+        // Default: all built-in chapters unlocked
+        setUnlockedChapters(INITIAL_DATA.map(ch => ch.id));
+      }
+    };
+    loadUnlockedChapters();
   }, []);
 
   // --- FIREBASE AUTH & DATA LOADING ---
   useEffect(() => {
     const initAuth = async () => {
-      if (!auth) return;
-      if (typeof window.__initial_auth_token !== 'undefined' && window.__initial_auth_token) {
-        await signInWithCustomToken(auth, window.__initial_auth_token).catch(console.error);
-      } else {
-        await signInAnonymously(auth).catch(console.error);
+      if (!auth) {
+        console.warn('Firebase auth not initialized');
+        setFirebaseStatus({ connected: false, authenticated: false });
+        return;
+      }
+      
+      setFirebaseStatus({ connected: true, authenticated: false });
+      
+      try {
+        if (typeof window !== 'undefined' && window.__initial_auth_token) {
+          console.log('Signing in with custom token');
+          await signInWithCustomToken(auth, window.__initial_auth_token);
+        } else {
+          console.log('Signing in anonymously');
+          await signInAnonymously(auth);
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
       }
     };
+    
     initAuth();
     
-    if (auth) return onAuthStateChanged(auth, async (u) => {
+    if (!auth) return;
+    
+    const unsubscribe = onAuthStateChanged(auth, async (u) => {
+      console.log('Auth state changed:', u ? 'User logged in' : 'No user');
       setUser(u);
+      setFirebaseStatus({ connected: true, authenticated: !!u });
+      
       if (u && db) {
         try {
           const q = query(
@@ -1248,26 +1281,28 @@ export default function RNMasteryGame() {
           const snapshot = await getDocs(q);
           const chapters = snapshot.docs.map(doc => doc.data().chapterTitle);
           setSubmittedChapters([...new Set(chapters)]);
+          console.log('Loaded submitted chapters:', chapters);
         } catch (e) {
           console.error('Error fetching submitted chapters:', e);
         }
       }
     });
+    
+    return () => unsubscribe();
   }, []);
 
   // --- GAME LOGIC ---
   const startChapter = (chapter, mode = MODES.CHAPTER_REVIEW) => {
-    // Get all enriched questions from the existing data structure
-    const allQuestions = INITIAL_DATA.flatMap(ch => enrichQuestions(ch.questions));
-    const pool = getPool(allQuestions, mode, chapter.id);
+    // Get questions directly from the selected chapter
+    const chapterQuestions = enrichQuestions(chapter.questions);
     
-    if (pool.length === 0) {
-      alert("No questions found for this selection.");
+    if (chapterQuestions.length === 0) {
+      alert("No questions found for this chapter.");
       return;
     }
     
     setActiveChapter(chapter);
-    setQuestions(pool.sort(() => 0.5 - Math.random()));
+    setQuestions(chapterQuestions); // Use chapter's own questions in original order
     setCurrentQuestionIndex(0);
     setScore(0);
     setStreak(0);
@@ -1369,6 +1404,23 @@ export default function RNMasteryGame() {
     setAnalytics(newAnalytics);
     localStorage.setItem('rnMasteryAnalytics', JSON.stringify(newAnalytics));
     
+    // Save to Firebase analytics if user is authenticated
+    if (user && db) {
+      try {
+        const q = questions[currentQuestionIndex];
+        addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'analytics'), {
+          uid: user.uid,
+          questionId: q.id,
+          chapterTitle: activeChapter.title,
+          isCorrect,
+          confidence: confLevel,
+          timestamp: serverTimestamp()
+        }).catch(err => console.error('Analytics save error:', err));
+      } catch (e) {
+        console.error('Analytics error:', e);
+      }
+    }
+    
     setShowRationale(true);
   };
 
@@ -1412,6 +1464,20 @@ export default function RNMasteryGame() {
   };
 
   const handleAiTutor = async () => {
+    const apiKey = process.env.REACT_APP_GEMINI_API_KEY || "";
+    
+    if (!apiKey) {
+      setAiExplanation(`💡 AI Tutor Feature
+
+To enable AI-powered mnemonics and clinical pearls, set up a Google Gemini API key.
+
+Get your free API key at: https://aistudio.google.com/app/apikey
+
+For now, review the rationale provided above to understand this concept!`);
+      setIsAiLoading(false);
+      return;
+    }
+    
     setIsAiLoading(true);
     const q = questions[currentQuestionIndex];
     const prompt = `Context: Nursing Student Game - Clinical Pearls Focus. Question: "${q.text}". Answer: "${q.options[q.correctIndex]}". Rationale: "${q.rationale}". Task: Give a very short, memorable mnemonic AND a clinical pearl (real-world nursing insight) to help remember this concept in practice.`;
@@ -1421,6 +1487,24 @@ export default function RNMasteryGame() {
   };
 
   const handleGenerateStudyGuide = async () => {
+    const apiKey = process.env.REACT_APP_GEMINI_API_KEY || "";
+    
+    if (!apiKey) {
+      setAiStudyGuide(`📚 AI Study Guide Feature
+
+To enable AI-generated study guides, you need to set up a Google Gemini API key:
+
+1. Get a free API key at: https://aistudio.google.com/app/apikey
+2. Add it to your .env file:
+   REACT_APP_GEMINI_API_KEY=your_key_here
+3. Rebuild and redeploy
+
+For the deployed version, the instructor needs to add the API key directly to the code or use a backend service.
+
+In the meantime, use the download feature to export your quiz results and create your own study guide!`);
+      return;
+    }
+    
     setIsGuideLoading(true);
     const prompt = `Create a high-yield study guide for: "${activeChapter.title}". Include key concepts, clinical pearls, and NCLEX-style tips. Keep it concise (300 words max).`;
     const text = await callGemini(prompt);
@@ -1478,11 +1562,30 @@ Rationale: ${missed.question.rationale}
   };
 
   const saveScoreToLeaderboard = async () => {
-    if (!user || !playerName.trim()) return;
-    if (submittedChapters.includes(activeChapter.title)) return;
+    if (!playerName.trim()) {
+      alert('Please enter your name before submitting!');
+      return;
+    }
+    
+    if (!user) {
+      alert('Authentication required. Please wait a moment and try again.');
+      return;
+    }
+    
+    if (submittedChapters.includes(activeChapter.title)) {
+      alert('You have already submitted a score for this chapter!');
+      return;
+    }
 
     setIsSubmittingScore(true);
     try {
+      console.log('Saving score to leaderboard:', {
+        playerName: playerName.trim(),
+        score,
+        chapterTitle: activeChapter.title,
+        uid: user.uid
+      });
+      
       await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'scores'), {
         playerName: playerName.trim(),
         score: score,
@@ -1492,11 +1595,14 @@ Rationale: ${missed.question.rationale}
         uid: user.uid
       });
       
+      console.log('Score saved successfully!');
       setSubmittedChapters([...submittedChapters, activeChapter.title]);
       setIsSubmittingScore(false);
+      alert('Score submitted successfully! 🎉');
       setGameState('leaderboard');
     } catch (error) {
       console.error("Error saving score:", error);
+      alert(`Failed to save score: ${error.message}. Please check your internet connection and try again.`);
       setIsSubmittingScore(false);
     }
   };
@@ -1547,12 +1653,15 @@ Rationale: ${missed.question.rationale}
         {/* Chapter Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...INITIAL_DATA, ...customChapters].map(chapter => {
+            const chapterId = chapter.id || chapter.chapterId;
             const isCompleted = submittedChapters.includes(chapter.title);
-            const isLocked = gameMode === 'ranked' && isCompleted;
+            const isRankedLocked = gameMode === 'ranked' && isCompleted;
+            const isChapterLocked = !unlockedChapters.includes(chapterId);
+            const isLocked = isRankedLocked || isChapterLocked;
             
             return (
               <button 
-                key={chapter.id || chapter.chapterId}
+                key={chapterId}
                 disabled={isLocked}
                 onClick={() => startChapter(chapter)} 
                 className={`p-6 rounded-2xl border flex flex-col items-center text-center transition-all group relative overflow-hidden ${
@@ -1564,6 +1673,12 @@ Rationale: ${missed.question.rationale}
                 {isCompleted && (
                   <div className="absolute top-2 right-2 bg-green-500/20 text-green-400 px-2 py-1 rounded-full text-xs font-bold flex items-center">
                     <CheckCircle className="w-3 h-3 mr-1" /> Ranked
+                  </div>
+                )}
+                
+                {isChapterLocked && (
+                  <div className="absolute top-2 left-2 bg-red-500/20 text-red-400 px-2 py-1 rounded-full text-xs font-bold flex items-center">
+                    <Lock className="w-3 h-3 mr-1" /> Locked
                   </div>
                 )}
                 
@@ -1844,6 +1959,14 @@ Rationale: ${missed.question.rationale}
           {/* Ranked Mode Submission */}
           {gameMode === 'ranked' && (
             <div className="mb-4">
+              {/* Firebase Status Indicator */}
+              <div className="mb-3 flex items-center justify-center gap-2 text-xs">
+                <div className={`w-2 h-2 rounded-full ${firebaseStatus.authenticated ? 'bg-green-400' : firebaseStatus.connected ? 'bg-yellow-400' : 'bg-red-400'}`}></div>
+                <span className="text-slate-400">
+                  {firebaseStatus.authenticated ? 'Ready to submit' : firebaseStatus.connected ? 'Connecting...' : 'Offline - scores cannot be saved'}
+                </span>
+              </div>
+              
               {alreadySubmitted ? (
                 <div className="bg-yellow-500/10 border border-yellow-500/30 p-4 rounded-xl">
                   <Lock className="w-5 h-5 text-yellow-400 mx-auto mb-2" />
@@ -1852,6 +1975,12 @@ Rationale: ${missed.question.rationale}
               ) : (
                 <div className="bg-slate-900 border border-slate-700 p-4 rounded-xl">
                   <h3 className="text-white font-bold mb-3 text-sm">Submit to Leaderboard</h3>
+                  {!firebaseStatus.authenticated && firebaseStatus.connected && (
+                    <p className="text-yellow-400 text-xs mb-2">⏳ Authenticating...</p>
+                  )}
+                  {!firebaseStatus.connected && (
+                    <p className="text-red-400 text-xs mb-2">⚠️ Not connected to server. Check your internet connection.</p>
+                  )}
                   <div className="flex gap-2">
                     <input 
                       type="text" 
@@ -1859,11 +1988,13 @@ Rationale: ${missed.question.rationale}
                       value={playerName} 
                       onChange={e => setPlayerName(e.target.value)} 
                       className="flex-1 bg-slate-800 border border-slate-700 rounded-lg p-3 text-white outline-none focus:border-cyan-500 text-sm"
+                      disabled={!firebaseStatus.authenticated}
                     />
                     <button 
                       onClick={saveScoreToLeaderboard} 
-                      disabled={isSubmittingScore || !playerName.trim()} 
+                      disabled={isSubmittingScore || !playerName.trim() || !firebaseStatus.authenticated} 
                       className="bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg px-4 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition"
+                      title={!firebaseStatus.authenticated ? 'Waiting for authentication...' : !playerName.trim() ? 'Enter your name first' : 'Submit score'}
                     >
                       {isSubmittingScore ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     </button>
