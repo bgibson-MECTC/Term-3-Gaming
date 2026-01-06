@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, XCircle, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, ArrowRight, Sparkles, Loader2, Lightbulb } from 'lucide-react';
 
 const Question = ({ 
   question, 
@@ -9,9 +9,12 @@ const Question = ({
   aiExplanation,
   isAiLoading,
   hiddenOptions = [],
+  examTip = null,
+  confidence = null,
   onSelectOption, 
   onAiTutor,
-  onNextQuestion 
+  onNextQuestion,
+  onConfidenceSelect 
 }) => {
   return (
     <>
@@ -56,12 +59,43 @@ const Question = ({
       {/* Rationale Section */}
       {showRationale && (
         <div className="animate-in slide-in-from-bottom duration-300">
+          {/* Confidence Selector (shown only if not already selected) */}
+          {!confidence && onConfidenceSelect && (
+            <div className="mb-4 p-4 bg-white/5 border border-white/10 rounded-xl">
+              <div className="text-sm text-slate-300 mb-3">How confident were you with this answer?</div>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => onConfidenceSelect('SURE')}
+                  className="flex-1 py-3 px-4 bg-green-500/20 border-2 border-green-500/30 rounded-xl hover:bg-green-500/30 transition font-bold text-green-300"
+                >
+                  ✓ Sure
+                </button>
+                <button 
+                  onClick={() => onConfidenceSelect('GUESS')}
+                  className="flex-1 py-3 px-4 bg-yellow-500/20 border-2 border-yellow-500/30 rounded-xl hover:bg-yellow-500/30 transition font-bold text-yellow-300"
+                >
+                  ? Guess
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className={`p-6 rounded-2xl mb-4 border ${selectedOption === question.correctIndex ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
             <div className="font-bold text-lg mb-2 flex items-center">
               {selectedOption === question.correctIndex ? <CheckCircle className="mr-2 text-green-400" /> : <XCircle className="mr-2 text-red-400" />}
               {feedbackMessage}
             </div>
             <p className="text-slate-300 leading-relaxed">{question.rationale}</p>
+            
+            {/* Exam Tip */}
+            {examTip && (
+              <div className="mt-4 p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <Lightbulb className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-cyan-200">{examTip}</div>
+                </div>
+              </div>
+            )}
             
             {/* AI Section */}
             <div className="mt-4 pt-4 border-t border-white/10">

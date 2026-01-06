@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Trophy, Star, Loader2, XCircle, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Trophy, Star, Loader2, XCircle, CheckCircle, ChevronDown, ChevronUp, Download, Lock } from 'lucide-react';
 
 const Summary = ({ 
   score, 
@@ -14,11 +14,70 @@ const Summary = ({
   missedQuestions = [],
   onPlayerNameChange,
   onSaveScore,
-  onReturnToMenu 
+  onReturnToMenu,
+  hasSubmitted = false,
+  aiExplanation = null
 }) => {
   const isNewRecord = score > personalBest;
   const percentage = Math.round((correctCount / totalQuestions) * 100);
   const [showMissed, setShowMissed] = useState(false);
+
+  // Download AI Study Guide function
+  const downloadStudyGuide = () => {
+    if (!aiExplanation) return;
+    
+    const content = `AI STUDY GUIDE - ${chapterTitle}
+Generated: ${new Date().toLocaleString()}
+
+==============================================
+CHAPTER SUMMARY
+==============================================
+${chapterTitle}
+Score: ${score} | Accuracy: ${percentage}%
+Rank: ${rank}
+Questions Correct: ${correctCount}/${totalQuestions}
+
+==============================================
+AI-GENERATED STUDY NOTES
+==============================================
+
+${aiExplanation}
+
+==============================================
+MISSED QUESTIONS REVIEW
+==============================================
+
+${missedQuestions.length > 0 ? missedQuestions.map((missed, idx) => `
+Question ${missed.questionNumber}:
+${missed.question.text}
+
+Your Answer: ${missed.question.options[missed.selectedAnswer]}
+Correct Answer: ${missed.question.options[missed.question.correctIndex]}
+
+Rationale: ${missed.question.rationale}
+
+---
+`).join('\n') : 'No missed questions - Perfect score!'}
+
+==============================================
+Study Tips:
+- Review missed questions daily
+- Use mnemonics to remember key concepts
+- Connect concepts to clinical cases
+- Practice with different question formats
+==============================================
+`;
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${chapterTitle.replace(/\s+/g, '_')}_Study_Guide.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
@@ -115,27 +174,63 @@ const Summary = ({
           </div>
         )}
 
+        {/* Download AI Study Guide */}
+        {aiExplanation && (
+          <div className="mb-6">
+            <button
+              onClick={downloadStudyGuide}
+              className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-bold py-4 px-6 rounded-2xl transition flex items-center justify-center shadow-lg"
+            >
+              <Download className="w-5 h-5 mr-2" />
+              💾 Download AI Study Guide
+            </button>
+            <p className="text-slate-400 text-xs text-center mt-2">Save this AI-generated study guide for finals!</p>
+          </div>
+        )}
+
         <div className="bg-white/5 p-6 rounded-2xl border border-white/10 mb-6">
-          <h3 className="text-white font-bold mb-4">Submit to Leaderboard</h3>
+          <h3 className="text-white font-bold mb-2 flex items-center justify-between">
+            <span>Submit to Leaderboard</span>
+            {hasSubmitted && (
+              <span className="text-xs bg-yellow-500/20 text-yellow-300 px-3 py-1 rounded-full border border-yellow-500/30">
+                ✓ Already Submitted
+              </span>
+            )}
+          </h3>
+          {hasSubmitted && (
+            <p className="text-sm text-slate-400 mb-4">
+              🔒 <strong>Ranked Mode:</strong> You've already submitted a score for this chapter. You can still practice, but can't overwrite your ranked score.
+            </p>
+          )}
           <div className="flex gap-2">
             <input 
               type="text" 
               placeholder="Your Name" 
               value={playerName}
               onChange={onPlayerNameChange}
-              className="flex-1 bg-slate-900/80 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-cyan-500 transition"
+              disabled={hasSubmitted}
+              className="flex-1 bg-slate-900/80 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-cyan-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
             />
             <button 
               onClick={onSaveScore}
-              disabled={!playerName.trim() || isSubmitting}
-              className="bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg px-6 transition disabled:opacity-50"
+              disabled={!playerName.trim() || isSubmitting || hasSubmitted}
+              className="bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg px-6 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
-              {isSubmitting ? <Loader2 className="animate-spin" /> : "Save"}
+              {hasSubmitted ? (
+                <>
+                  <Lock className="w-4 h-4 mr-1" />
+                  Locked
+                </>
+              ) : isSubmitting ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                "Save"
+              )}
             </button>
           </div>
         </div>
 
-        <button onClick={onReturnToMenu} className="text-slate-400 hover:text-white transition">Skip & Return to Menu</button>
+        <button onClick={onReturnToMenu} className="text-slate-400 hover:text-white transition">Return to Menu</button>
       </div>
     </div>
   );
