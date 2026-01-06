@@ -1,5 +1,5 @@
-import React from 'react';
-import { Trophy, Star, Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Trophy, Star, Loader2, XCircle, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
 
 const Summary = ({ 
   score, 
@@ -11,16 +11,18 @@ const Summary = ({
   rank,
   playerName,
   isSubmitting,
+  missedQuestions = [],
   onPlayerNameChange,
   onSaveScore,
   onReturnToMenu 
 }) => {
   const isNewRecord = score > personalBest;
   const percentage = Math.round((correctCount / totalQuestions) * 100);
+  const [showMissed, setShowMissed] = useState(false);
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
-      <div className="w-full max-w-lg bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 text-center shadow-2xl animate-fade-in">
+      <div className="w-full max-w-3xl bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 text-center shadow-2xl animate-fade-in">
         <div className="w-24 h-24 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-orange-500/50 animate-bounce">
           <Trophy className="w-12 h-12 text-white" />
         </div>
@@ -62,6 +64,56 @@ const Summary = ({
             <div className="text-xs text-purple-300">Prev Best</div>
           </div>
         </div>
+
+        {/* Missed Questions Review */}
+        {missedQuestions.length > 0 && (
+          <div className="mb-6 bg-red-500/10 border border-red-500/30 rounded-2xl overflow-hidden">
+            <button 
+              onClick={() => setShowMissed(!showMissed)}
+              className="w-full p-4 flex items-center justify-between hover:bg-red-500/20 transition"
+            >
+              <div className="flex items-center">
+                <XCircle className="w-5 h-5 text-red-400 mr-3" />
+                <span className="font-bold text-white">Review Missed Questions ({missedQuestions.length})</span>
+              </div>
+              {showMissed ? <ChevronUp className="w-5 h-5 text-red-400" /> : <ChevronDown className="w-5 h-5 text-red-400" />}
+            </button>
+            
+            {showMissed && (
+              <div className="p-4 space-y-4 max-h-96 overflow-y-auto text-left">
+                {missedQuestions.map((missed, idx) => (
+                  <div key={idx} className="bg-slate-900/50 p-4 rounded-xl border border-red-500/20">
+                    <div className="font-bold text-red-300 mb-2">Question {missed.questionNumber}</div>
+                    <div className="text-white mb-3">{missed.question.text}</div>
+                    
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-start">
+                        <XCircle className="w-4 h-4 text-red-400 mr-2 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <span className="text-red-300 font-bold">Your Answer: </span>
+                          <span className="text-slate-300">{missed.question.options[missed.selectedAnswer]}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start">
+                        <CheckCircle className="w-4 h-4 text-green-400 mr-2 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <span className="text-green-300 font-bold">Correct Answer: </span>
+                          <span className="text-slate-300">{missed.question.options[missed.question.correctIndex]}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                        <div className="text-blue-300 font-bold text-xs uppercase mb-1">Rationale:</div>
+                        <div className="text-slate-300">{missed.question.rationale}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="bg-white/5 p-6 rounded-2xl border border-white/10 mb-6">
           <h3 className="text-white font-bold mb-4">Submit to Leaderboard</h3>

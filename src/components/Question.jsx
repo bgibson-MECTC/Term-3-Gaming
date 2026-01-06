@@ -8,6 +8,7 @@ const Question = ({
   feedbackMessage,
   aiExplanation,
   isAiLoading,
+  hiddenOptions = [],
   onSelectOption, 
   onAiTutor,
   onNextQuestion 
@@ -20,8 +21,15 @@ const Question = ({
 
         <div className="space-y-3">
           {question.options.map((opt, idx) => {
+            // Check if this option is hidden by 50/50
+            const isHidden = hiddenOptions.includes(idx);
+            
             let style = "p-5 rounded-xl border-2 text-left font-medium transition-all duration-200 w-full flex items-center ";
-            if (showRationale) {
+            
+            if (isHidden && !showRationale) {
+              // Hidden by 50/50 - make it invisible but keep layout
+              style += "opacity-0 pointer-events-none border-white/5";
+            } else if (showRationale) {
               if (idx === question.correctIndex) style += "border-green-500 bg-green-500/20 text-green-100";
               else if (idx === selectedOption) style += "border-red-500 bg-red-500/20 text-red-100";
               else style += "border-white/5 opacity-50";
@@ -29,8 +37,14 @@ const Question = ({
               if (selectedOption === idx) style += "border-cyan-500 bg-cyan-500/20 text-cyan-100";
               else style += "border-white/10 hover:bg-white/5 hover:border-white/30";
             }
+            
             return (
-              <button key={idx} onClick={() => !showRationale && onSelectOption(idx)} className={style}>
+              <button 
+                key={idx} 
+                onClick={() => !showRationale && !isHidden && onSelectOption(idx)} 
+                className={style}
+                disabled={isHidden && !showRationale}
+              >
                 <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center mr-4 text-sm font-bold">{idx + 1}</div>
                 {opt}
               </button>

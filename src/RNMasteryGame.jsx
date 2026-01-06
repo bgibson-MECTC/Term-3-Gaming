@@ -638,6 +638,11 @@ export default function RNMasteryGame() {
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [leaderboardFilter, setLeaderboardFilter] = useState('all');
   
+  // New Feature States
+  const [fiftyFiftyUsed, setFiftyFiftyUsed] = useState(false);
+  const [hiddenOptions, setHiddenOptions] = useState([]);
+  const [missedQuestions, setMissedQuestions] = useState([]);
+  
   // AI States
   const [aiExplanation, setAiExplanation] = useState(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -701,13 +706,33 @@ export default function RNMasteryGame() {
   }, [gameState, showRationale, selectedOption, activeChapter, currentQuestionIndex]);
 
   // --- LOGIC ---
+  
+  // Fisher-Yates shuffle algorithm
+  const shuffleArray = (array) => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+  
   const startChapter = (chapter) => {
-    setActiveChapter(chapter);
+    // Shuffle questions for randomization
+    const shuffledChapter = {
+      ...chapter,
+      questions: shuffleArray(chapter.questions)
+    };
+    
+    setActiveChapter(shuffledChapter);
     setCurrentQuestionIndex(0);
     setScore(0);
     setStreak(0);
     setCorrectCount(0);
     setIncorrectCount(0);
+    setMissedQuestions([]);
+    setFiftyFiftyUsed(false);
+    setHiddenOptions([]);
     setGameState('playing');
     setSelectedOption(null);
     setShowRationale(false);
@@ -740,7 +765,8 @@ export default function RNMasteryGame() {
 
   const submitAnswer = () => {
     if (selectedOption === null) return;
-    const isCorrect = selectedOption === activeChapter.questions[currentQuestionIndex].correctIndex;
+    const currentQuestion = activeChapter.questions[currentQuestionIndex];
+    const isCorrect = selectedOption === currentQuestion.correctIndex;
     
     if (isCorrect) {
       setCorrectCount(correctCount + 1);
@@ -756,6 +782,14 @@ export default function RNMasteryGame() {
     } else {
       setIncorrectCount(incorrectCount + 1);
       setStreak(0);
+      
+      // Track missed question for review
+      setMissedQuestions([...missedQuestions, {
+        question: currentQuestion,
+        selectedAnswer: selectedOption,
+        questionNumber: currentQuestionIndex + 1
+      }]);
+      
       if (riskMode) {
         setScore(Math.max(0, score - 500)); // Lose 500 for failed risk
         setFeedbackMessage("Risk Failed! -500 pts 😱");
@@ -774,6 +808,7 @@ export default function RNMasteryGame() {
       setAiExplanation(null);
       setFeedbackMessage('');
       setRiskMode(false);
+      setHiddenOptions([]); // Reset hidden options for new question
     } else {
       const isNewRecord = savePersonalBest(activeChapter.id, score);
       if (isNewRecord) {
@@ -821,6 +856,25 @@ export default function RNMasteryGame() {
     if (s < 2500) return "Apprentice";
     if (s < 4000) return "Expert RN";
     return "Clinical Legend 👑";
+  };
+
+  const use50_50 = () => {
+    if (fiftyFiftyUsed || showRationale) return;
+    
+    const currentQuestion = activeChapter.questions[currentQuestionIndex];
+    const correctIndex = currentQuestion.correctIndex;
+    
+    // Get all incorrect answer indices
+    const incorrectIndices = currentQuestion.options
+      .map((_, idx) => idx)
+      .filter(idx => idx !== correctIndex);
+    
+    // Randomly select 2 incorrect answers to hide
+    const shuffledIncorrect = incorrectIndices.sort(() => Math.random() - 0.5);
+    const toHide = shuffledIncorrect.slice(0, 2);
+    
+    setHiddenOptions(toHide);
+    setFiftyFiftyUsed(true);
   };
 
   const handleAiTutor = async () => {
@@ -888,6 +942,7 @@ export default function RNMasteryGame() {
               feedbackMessage={feedbackMessage}
               aiExplanation={aiExplanation}
               isAiLoading={isAiLoading}
+              hiddenOptions={hiddenOptions}
               onSelectOption={setSelectedOption}
               onAiTutor={handleAiTutor}
               onNextQuestion={nextQuestion}
@@ -896,7 +951,30 @@ export default function RNMasteryGame() {
 
           {/* Actions */}
           {!showRationale && (
-            <div className="mt-auto sticky bottom-6">
+            <div className="mt-auto sticky bottom-6 space-y-3">
+              {/* 50/50 Lifeline Button */}
+              {!fiftyFiftyUsed && (
+                <div className="flex justify-center">
+                  <button 
+                    onClick={use50_50}
+                    disabled={selectedOption !== null}
+                    className={`px-6 py-2 rounded-full font-bold text-sm transition-all border-2 flex items-center gap-2 ${
+                      selectedOption !== null 
+                        ? 'bg-slate-700 border-slate-600 text-slate-500 cursor-not-allowed' 
+                        : 'bg-gradient-to-r from-yellow-500 to-orange-500 border-yellow-400 text-white hover:scale-105 shadow-lg shadow-yellow-500/50'
+                    }`}
+                  >
+                    <span className="text-xl">📞</span>
+                    50/50 LIFELINE
+                  </button>
+                </div>
+              )}
+              {fiftyFiftyUsed && (
+                <div className="text-center text-sm text-yellow-400 font-bold">
+                  ✓ Lifeline Used
+                </div>
+              )}
+              
               <div className="flex gap-4">
                 <button 
                   onClick={() => setRiskMode(!riskMode)}
@@ -945,6 +1023,7 @@ export default function RNMasteryGame() {
         rank={rank}
         playerName={playerName}
         isSubmitting={isSubmittingScore}
+        missedQuestions={missedQuestions}
         onPlayerNameChange={(e) => setPlayerName(e.target.value)}
         onSaveScore={saveScoreToLeaderboard}
         onReturnToMenu={() => setGameState('menu')}
