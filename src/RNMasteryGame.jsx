@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Bug, Bone, Activity, AlertCircle } from 'lucide-react';
+import { Shield, Bug, Bone, Activity, AlertCircle, Brain } from 'lucide-react';
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "firebase/auth";
 import { getFirestore, collection, addDoc, onSnapshot, query, limit, serverTimestamp } from "firebase/firestore";
@@ -166,6 +166,76 @@ const INITIAL_DATA = [
         options: ["Vasoconstriction", "Vasodilation & permeability", "Decreased flow", "Decreased permeability"],
         correctIndex: 1,
         rationale: "Vasodilation (heat/redness) and permeability (swelling) allow immune cells to reach the site."
+      },
+      {
+        id: 16,
+        text: "Natural Killer (NK) cells are part of which immunity?",
+        options: ["Adaptive", "Innate", "Passive", "Artificial"],
+        correctIndex: 1,
+        rationale: "NK cells provide immediate, non-specific defense as part of innate immunity."
+      },
+      {
+        id: 17,
+        text: "Which WBC is the 'first responder' to bacterial infection?",
+        options: ["Lymphocyte", "Monocyte", "Neutrophil", "Basophil"],
+        correctIndex: 2,
+        rationale: "Neutrophils are the most abundant and first to arrive at infection sites."
+      },
+      {
+        id: 18,
+        text: "Complement system activation results in:",
+        options: ["Decreased inflammation", "Pathogen lysis", "Antibody suppression", "WBC destruction"],
+        correctIndex: 1,
+        rationale: "Complement creates membrane attack complexes that lyse pathogens."
+      },
+      {
+        id: 19,
+        text: "Memory B-cells provide:",
+        options: ["Immediate response", "Long-term immunity", "Phagocytosis", "Inflammation"],
+        correctIndex: 1,
+        rationale: "Memory cells enable faster, stronger responses upon re-exposure."
+      },
+      {
+        id: 20,
+        text: "Which finding suggests lymphoma?",
+        options: ["Painful, mobile nodes", "Painless, fixed lymphadenopathy", "Fever only", "Normal CBC"],
+        correctIndex: 1,
+        rationale: "Painless, fixed nodes that don't resolve are concerning for malignancy."
+      },
+      {
+        id: 21,
+        text: "Neutropenia increases risk for:",
+        options: ["Bleeding", "Infection", "Allergy", "Clotting"],
+        correctIndex: 1,
+        rationale: "Low neutrophils (<1500) significantly increase infection risk."
+      },
+      {
+        id: 22,
+        text: "Monocytes differentiate into:",
+        options: ["Neutrophils", "Macrophages", "T-cells", "Platelets"],
+        correctIndex: 1,
+        rationale: "Monocytes leave blood and become tissue macrophages."
+      },
+      {
+        id: 23,
+        text: "IgM indicates:",
+        options: ["Past infection", "Active/recent infection", "Vaccine response", "Allergy"],
+        correctIndex: 1,
+        rationale: "IgM is the first antibody produced during acute infection."
+      },
+      {
+        id: 24,
+        text: "Interferons are released in response to:",
+        options: ["Bacteria", "Viruses", "Parasites", "Allergens"],
+        correctIndex: 1,
+        rationale: "Interferons 'interfere' with viral replication."
+      },
+      {
+        id: 25,
+        text: "CD4 cells are also called:",
+        options: ["Killer T-cells", "Helper T-cells", "B-cells", "NK cells"],
+        correctIndex: 1,
+        rationale: "CD4+ T-cells are helper cells that coordinate immune responses."
       }
     ]
   },
@@ -279,6 +349,76 @@ const INITIAL_DATA = [
         options: ["B-cells", "Sensitized T-cells", "Neutrophils", "Mast cells"],
         correctIndex: 1,
         rationale: "Type IV is cell-mediated by T-cells, not antibodies."
+      },
+      {
+        id: 16,
+        text: "Which medication suppresses Type I allergic reactions?",
+        options: ["Antihistamines", "NSAIDs", "ACE inhibitors", "Beta blockers"],
+        correctIndex: 0,
+        rationale: "Antihistamines block histamine release from mast cells in Type I reactions."
+      },
+      {
+        id: 17,
+        text: "Hemolytic transfusion reaction is which type?",
+        options: ["Type I", "Type II", "Type III", "Type IV"],
+        correctIndex: 1,
+        rationale: "Type II cytotoxic reaction occurs when antibodies attack transfused RBCs."
+      },
+      {
+        id: 18,
+        text: "Contact dermatitis from poison ivy is which type?",
+        options: ["Type I", "Type II", "Type III", "Type IV"],
+        correctIndex: 3,
+        rationale: "Poison ivy causes a delayed Type IV cell-mediated hypersensitivity."
+      },
+      {
+        id: 19,
+        text: "Classic sign of Systemic Lupus Erythematosus (SLE)?",
+        options: ["Butterfly rash", "Spider veins", "Clubbing", "Pallor"],
+        correctIndex: 0,
+        rationale: "Malar (butterfly) rash across cheeks and nose is characteristic of SLE."
+      },
+      {
+        id: 20,
+        text: "Priority nursing action during anaphylaxis?",
+        options: ["Establish IV access", "Administer epinephrine", "Get vital signs", "Call physician"],
+        correctIndex: 1,
+        rationale: "Epinephrine is the first-line treatment to reverse bronchospasm and vasodilation."
+      },
+      {
+        id: 21,
+        text: "Which immunosuppressant requires monitoring for nephrotoxicity?",
+        options: ["Azathioprine", "Prednisone", "Cyclosporine", "Methotrexate"],
+        correctIndex: 2,
+        rationale: "Cyclosporine can damage kidneys; monitor creatinine and BUN levels."
+      },
+      {
+        id: 22,
+        text: "Positive ANA test suggests which condition?",
+        options: ["Diabetes", "Hypertension", "Autoimmune disorder", "Bacterial infection"],
+        correctIndex: 2,
+        rationale: "Antinuclear antibodies (ANA) indicate autoimmune conditions like SLE."
+      },
+      {
+        id: 23,
+        text: "Chronic transplant rejection time frame?",
+        options: ["Minutes", "Hours to days", "Months to years", "Never occurs"],
+        correctIndex: 2,
+        rationale: "Chronic rejection is a slow progressive process occurring months to years post-transplant."
+      },
+      {
+        id: 24,
+        text: "Food most commonly causing Type I allergies in children?",
+        options: ["Wheat", "Peanuts", "Corn", "Rice"],
+        correctIndex: 1,
+        rationale: "Peanuts cause severe IgE-mediated allergic reactions and anaphylaxis in children."
+      },
+      {
+        id: 25,
+        text: "Teaching point for clients with latex allergy?",
+        options: ["Only avoid powdered gloves", "Report to healthcare providers", "Allergy decreases over time", "Safe to use latex at home"],
+        correctIndex: 1,
+        rationale: "Clients must inform all healthcare providers to ensure latex-free equipment and gloves."
       }
     ]
   },
@@ -392,6 +532,76 @@ const INITIAL_DATA = [
         options: ["Diagnosis", "Uncontrolled pain/mobility loss", "Age <40", "Cream failure"],
         correctIndex: 1,
         rationale: "Surgery is the last resort for severe pain/loss of function."
+      },
+      {
+        id: 16,
+        text: "First-line DMARD for Rheumatoid Arthritis?",
+        options: ["Prednisone", "Methotrexate", "Ibuprofen", "Acetaminophen"],
+        correctIndex: 1,
+        rationale: "Methotrexate is the gold standard DMARD to slow RA progression."
+      },
+      {
+        id: 17,
+        text: "Lab value elevated in Rheumatoid Arthritis?",
+        options: ["Glucose", "Rheumatoid Factor (RF)", "Hemoglobin", "Sodium"],
+        correctIndex: 1,
+        rationale: "Rheumatoid Factor is an autoantibody present in 70-80% of RA patients."
+      },
+      {
+        id: 18,
+        text: "Teaching for patient on Methotrexate?",
+        options: ["Take with grapefruit juice", "Avoid folic acid", "Avoid alcohol", "Double dose if missed"],
+        correctIndex: 2,
+        rationale: "Alcohol increases hepatotoxicity risk with Methotrexate."
+      },
+      {
+        id: 19,
+        text: "Joint most commonly affected by Gout?",
+        options: ["Hip", "Shoulder", "Great toe (MTP joint)", "Elbow"],
+        correctIndex: 2,
+        rationale: "Gout classically presents in the first metatarsophalangeal joint (big toe)."
+      },
+      {
+        id: 20,
+        text: "Complication of untreated Osteoarthritis?",
+        options: ["Increased flexibility", "Joint deformity & disability", "Hyperglycemia", "Anemia"],
+        correctIndex: 1,
+        rationale: "Progressive cartilage loss leads to deformity and loss of function."
+      },
+      {
+        id: 21,
+        text: "Medication that can trigger Gout attack?",
+        options: ["Thiazide diuretics", "Beta blockers", "Calcium channel blockers", "ACE inhibitors"],
+        correctIndex: 0,
+        rationale: "Diuretics increase uric acid levels by reducing renal excretion."
+      },
+      {
+        id: 22,
+        text: "Lab test to confirm diagnosis of Gout?",
+        options: ["CBC", "Synovial fluid analysis for urate crystals", "Chest X-ray", "EKG"],
+        correctIndex: 1,
+        rationale: "Needle-shaped urate crystals in joint fluid confirm Gout."
+      },
+      {
+        id: 23,
+        text: "Expected X-ray finding in Osteoarthritis?",
+        options: ["Joint space widening", "Joint space narrowing & bone spurs", "Fractures", "Soft tissue swelling only"],
+        correctIndex: 1,
+        rationale: "OA shows decreased joint space and osteophytes (bone spurs)."
+      },
+      {
+        id: 24,
+        text: "Priority teaching for Lupus patient about pregnancy?",
+        options: ["Safe to get pregnant anytime", "High-risk; requires specialist care", "Stop all medications", "Avoid prenatal vitamins"],
+        correctIndex: 1,
+        rationale: "SLE pregnancies are high-risk due to flares and complications; need MFM specialist."
+      },
+      {
+        id: 25,
+        text: "Biologic therapy for severe Rheumatoid Arthritis?",
+        options: ["Aspirin", "TNF inhibitors (Etanercept)", "Tylenol", "Vitamin D"],
+        correctIndex: 1,
+        rationale: "TNF-alpha inhibitors target specific immune pathways in RA."
       }
     ]
   },
@@ -505,6 +715,76 @@ const INITIAL_DATA = [
         options: ["Infected only", "HIV only", "All patients", "Surgical only"],
         correctIndex: 2,
         rationale: "Universal standard for all patients."
+      },
+      {
+        id: 16,
+        text: "Transmission-based precaution for active TB?",
+        options: ["Contact", "Droplet", "Airborne", "Standard only"],
+        correctIndex: 2,
+        rationale: "TB requires airborne precautions with N95 respirator."
+      },
+      {
+        id: 17,
+        text: "PPE removal (doffing) order?",
+        options: ["Mask first", "Gloves -> Gown -> Mask -> Goggles", "Gown first", "Goggles first"],
+        correctIndex: 1,
+        rationale: "Remove most contaminated items first (gloves) before touching face."
+      },
+      {
+        id: 18,
+        text: "Type of precaution for Influenza?",
+        options: ["Contact", "Airborne", "Droplet", "Protective environment"],
+        correctIndex: 2,
+        rationale: "Influenza spreads via large droplets; requires surgical mask."
+      },
+      {
+        id: 19,
+        text: "ESBL organisms are resistant to:",
+        options: ["All antibiotics", "Beta-lactam antibiotics", "Antifungals", "Antivirals"],
+        correctIndex: 1,
+        rationale: "Extended-spectrum beta-lactamase breaks down penicillins and cephalosporins."
+      },
+      {
+        id: 20,
+        text: "Contact precautions require:",
+        options: ["N95 mask", "Gown and gloves", "Negative pressure room", "PAPR"],
+        correctIndex: 1,
+        rationale: "Gown and gloves prevent transmission via direct contact."
+      },
+      {
+        id: 21,
+        text: "CRE stands for:",
+        options: ["Carbapenem-Resistant Enterobacteriaceae", "Common Respiratory Enterococcus", "Chronic Renal Encephalopathy", "Continuous Renal Excretion"],
+        correctIndex: 0,
+        rationale: "CRE are 'superbugs' resistant to carbapenem antibiotics."
+      },
+      {
+        id: 22,
+        text: "Negative pressure room is required for:",
+        options: ["MRSA", "C. diff", "Tuberculosis", "VRE"],
+        correctIndex: 2,
+        rationale: "Negative pressure prevents airborne particles from escaping the room."
+      },
+      {
+        id: 23,
+        text: "Priority action if exposed to blood/bodily fluids?",
+        options: ["Document later", "Wash area immediately & report", "Continue working", "Wait until end of shift"],
+        correctIndex: 1,
+        rationale: "Immediate washing and reporting enables timely post-exposure prophylaxis."
+      },
+      {
+        id: 24,
+        text: "MDROs develop resistance primarily due to:",
+        options: ["Proper antibiotic use", "Overuse and misuse of antibiotics", "Handwashing", "Vaccination"],
+        correctIndex: 1,
+        rationale: "Inappropriate antibiotic use drives selection of resistant strains."
+      },
+      {
+        id: 25,
+        text: "Which patient requires protective environment (reverse isolation)?",
+        options: ["MRSA infection", "Neutropenic cancer patient", "Diabetic", "Post-op day 1"],
+        correctIndex: 1,
+        rationale: "Immunocompromised patients need protection from environmental pathogens."
       }
     ]
   },
@@ -618,6 +898,259 @@ const INITIAL_DATA = [
         options: ["Rare", "Leading cause of death", "Untreatable", "No isolation"],
         correctIndex: 1,
         rationale: "Major coinfection and killer."
+      },
+      {
+        id: 16,
+        text: "Window period for HIV testing refers to:",
+        options: ["Treatment duration", "Time between infection and detectable antibodies", "CD4 recovery time", "Viral load doubling time"],
+        correctIndex: 1,
+        rationale: "It takes 2-12 weeks for antibodies to develop; tests may be negative during this time."
+      },
+      {
+        id: 17,
+        text: "Common side effect of Efavirenz (NNRTI)?",
+        options: ["Weight gain", "Vivid dreams/CNS effects", "Hair loss", "Diarrhea"],
+        correctIndex: 1,
+        rationale: "Efavirenz commonly causes neuropsychiatric side effects including vivid dreams."
+      },
+      {
+        id: 18,
+        text: "PrEP (Pre-Exposure Prophylaxis) is for:",
+        options: ["Treating HIV infection", "Preventing HIV in high-risk individuals", "Curing AIDS", "Treating opportunistic infections"],
+        correctIndex: 1,
+        rationale: "PrEP (Truvada/Descovy) reduces HIV acquisition risk by >90% when taken consistently."
+      },
+      {
+        id: 19,
+        text: "CD4 count indicating severe immunosuppression/AIDS?",
+        options: [">500", "350-500", "200-350", "<200"],
+        correctIndex: 3,
+        rationale: "CD4 <200 defines AIDS and dramatically increases opportunistic infection risk."
+      },
+      {
+        id: 20,
+        text: "Cryptococcal meningitis in AIDS patients presents with:",
+        options: ["Rash", "Severe headache & altered mental status", "Cough", "Diarrhea"],
+        correctIndex: 1,
+        rationale: "Fungal meningitis causes headache, fever, and neurological changes."
+      },
+      {
+        id: 21,
+        text: "Adherence requirement for ART effectiveness?",
+        options: ["50%", "75%", ">95%", "Take when sick"],
+        correctIndex: 2,
+        rationale: "Strict adherence >95% prevents resistance and maintains viral suppression."
+      },
+      {
+        id: 22,
+        text: "Wasting syndrome (HIV-associated) is defined as:",
+        options: ["Weight gain", ">10% unintentional weight loss", "Increased muscle mass", "Fluid retention"],
+        correctIndex: 1,
+        rationale: "AIDS wasting involves severe involuntary weight loss with muscle depletion."
+      },
+      {
+        id: 23,
+        text: "Integrase inhibitor example?",
+        options: ["Raltegravir", "Efavirenz", "Lamivudine", "Ritonavir"],
+        correctIndex: 0,
+        rationale: "Raltegravir (Isentress) blocks HIV integration into host DNA."
+      },
+      {
+        id: 24,
+        text: "Patient education about ART resistance?",
+        options: ["Missing doses has no effect", "Resistance develops with inconsistent use", "Double dose if missed", "Stop meds if feeling better"],
+        correctIndex: 1,
+        rationale: "Inconsistent dosing allows viral replication and mutation to resistant strains."
+      },
+      {
+        id: 25,
+        text: "Legal requirement for HIV status disclosure?",
+        options: ["Must tell everyone", "Varies by state; often required to inform sexual partners", "Never required", "Only employers need to know"],
+        correctIndex: 1,
+        rationale: "Laws vary; many states criminalize non-disclosure to sexual partners."
+      }
+    ]
+  },
+  {
+    id: 'quiz1',
+    title: 'Review for Quiz 1',
+    icon: <Brain className="w-6 h-6" />,
+    description: 'Mixed Review: Chapters 18-22.',
+    questions: [
+      {
+        id: 1,
+        text: "Which antibody provides passive immunity in breast milk?",
+        options: ["IgG", "IgM", "IgA", "IgE"],
+        correctIndex: 2,
+        rationale: "IgA is secreted in mucous membranes and breast milk."
+      },
+      {
+        id: 2,
+        text: "Contact dermatitis is which hypersensitivity type?",
+        options: ["Type I", "Type II", "Type III", "Type IV"],
+        correctIndex: 3,
+        rationale: "Type IV delayed cell-mediated reaction (e.g., poison ivy)."
+      },
+      {
+        id: 3,
+        text: "Heberden's nodes are found in:",
+        options: ["Rheumatoid Arthritis", "Osteoarthritis", "Gout", "Lupus"],
+        correctIndex: 1,
+        rationale: "Bony enlargements at DIP joints characteristic of OA."
+      },
+      {
+        id: 4,
+        text: "Why is soap and water required for C. diff?",
+        options: ["Smells better", "Alcohol doesn't kill spores", "Faster", "Required by law"],
+        correctIndex: 1,
+        rationale: "Mechanical action of soap and water removes C. diff spores; alcohol doesn't."
+      },
+      {
+        id: 5,
+        text: "CD4 count at AIDS diagnosis?",
+        options: [">500", "350-500", "200-350", "<200"],
+        correctIndex: 3,
+        rationale: "AIDS is defined by CD4 <200 or opportunistic infections."
+      },
+      {
+        id: 6,
+        text: "Which cell type produces antibodies?",
+        options: ["T-cells", "Plasma cells (B-cells)", "Neutrophils", "Basophils"],
+        correctIndex: 1,
+        rationale: "B-cells differentiate into plasma cells that secrete antibodies."
+      },
+      {
+        id: 7,
+        text: "Butterfly rash is associated with:",
+        options: ["RA", "OA", "SLE (Lupus)", "Gout"],
+        correctIndex: 2,
+        rationale: "Malar rash across cheeks/nose is classic for Systemic Lupus Erythematosus."
+      },
+      {
+        id: 8,
+        text: "Priority action during anaphylaxis?",
+        options: ["Call physician", "Administer epinephrine", "Start IV", "Take vital signs"],
+        correctIndex: 1,
+        rationale: "Epinephrine IM is the first-line life-saving treatment."
+      },
+      {
+        id: 9,
+        text: "MRSA requires which precautions?",
+        options: ["Standard only", "Contact", "Airborne", "Droplet"],
+        correctIndex: 1,
+        rationale: "MRSA spreads via direct contact; gown and gloves required."
+      },
+      {
+        id: 10,
+        text: "Goal of antiretroviral therapy (ART)?",
+        options: ["Cure HIV", "Increase CD4", "Undetectable viral load", "Kill all T-cells"],
+        correctIndex: 2,
+        rationale: "ART suppresses HIV replication to undetectable levels."
+      },
+      {
+        id: 11,
+        text: "Inflammation is part of which immunity?",
+        options: ["Adaptive", "Innate", "Passive", "Artificial"],
+        correctIndex: 1,
+        rationale: "Inflammation is a non-specific innate immune response."
+      },
+      {
+        id: 12,
+        text: "Serum sickness is which type of reaction?",
+        options: ["Type I", "Type II", "Type III", "Type IV"],
+        correctIndex: 2,
+        rationale: "Type III immune complex-mediated hypersensitivity."
+      },
+      {
+        id: 13,
+        text: "Which medication prevents Gout attacks long-term?",
+        options: ["Colchicine", "Allopurinol", "Prednisone", "NSAIDs"],
+        correctIndex: 1,
+        rationale: "Allopurinol reduces uric acid production to prevent future flares."
+      },
+      {
+        id: 14,
+        text: "Hand hygiene is most effective at preventing:",
+        options: ["Aging", "MDRO transmission", "Genetic diseases", "Cancer"],
+        correctIndex: 1,
+        rationale: "Proper handwashing is the #1 method to break infection chain."
+      },
+      {
+        id: 15,
+        text: "Kaposi's Sarcoma appears as:",
+        options: ["White patches", "Purple skin lesions", "Yellow nodules", "Clear blisters"],
+        correctIndex: 1,
+        rationale: "Vascular cancer causing purple/red lesions in AIDS patients."
+      },
+      {
+        id: 16,
+        text: "Which antibody is first to respond in infection?",
+        options: ["IgA", "IgE", "IgG", "IgM"],
+        correctIndex: 3,
+        rationale: "IgM appears first during acute infection ('M for iMmediate')."
+      },
+      {
+        id: 17,
+        text: "Anaphylaxis involves which antibody?",
+        options: ["IgA", "IgE", "IgG", "IgM"],
+        correctIndex: 1,
+        rationale: "IgE binds to allergens and triggers mast cell degranulation."
+      },
+      {
+        id: 18,
+        text: "Lab most specific for SLE?",
+        options: ["CBC", "Anti-dsDNA", "CRP", "Uric acid"],
+        correctIndex: 1,
+        rationale: "Anti-dsDNA and Anti-Smith antibodies are highly specific for Lupus."
+      },
+      {
+        id: 19,
+        text: "Standard precautions apply to:",
+        options: ["Infected patients only", "HIV patients only", "All patients", "Surgical patients only"],
+        correctIndex: 2,
+        rationale: "Standard precautions are used universally for all patient care."
+      },
+      {
+        id: 20,
+        text: "Undetectable = Untransmittable (U=U) means:",
+        options: ["HIV is cured", "Cannot transmit HIV sexually", "Can stop medications", "CD4 is restored"],
+        correctIndex: 1,
+        rationale: "Sustained viral suppression prevents sexual transmission of HIV."
+      },
+      {
+        id: 21,
+        text: "Which immunity provides immediate, non-specific defense?",
+        options: ["Adaptive", "Innate", "Passive", "Humoral"],
+        correctIndex: 1,
+        rationale: "Innate immunity (barriers, inflammation, phagocytes) responds immediately."
+      },
+      {
+        id: 22,
+        text: "First-line DMARD for Rheumatoid Arthritis?",
+        options: ["Prednisone", "Methotrexate", "Ibuprofen", "Tylenol"],
+        correctIndex: 1,
+        rationale: "Methotrexate is the gold-standard DMARD to slow RA progression."
+      },
+      {
+        id: 23,
+        text: "PPE doffing order (removal)?",
+        options: ["Mask first", "Gloves -> Gown -> Mask", "Gown first", "Random order"],
+        correctIndex: 1,
+        rationale: "Remove most contaminated items (gloves) first, mask last."
+      },
+      {
+        id: 24,
+        text: "PEP (Post-Exposure Prophylaxis) must start within:",
+        options: ["1 week", "72 hours", "1 month", "No time limit"],
+        correctIndex: 1,
+        rationale: "PEP is most effective when started within 72 hours of HIV exposure."
+      },
+      {
+        id: 25,
+        text: "Neutrophils primarily fight which infections?",
+        options: ["Viral", "Bacterial", "Parasitic", "Fungal"],
+        correctIndex: 1,
+        rationale: "Neutrophils are first responders to bacterial infections."
       }
     ]
   }

@@ -5,7 +5,7 @@ A competitive, gamified learning platform for nursing students covering Chapters
 ## Features
 
 ### Core Gameplay
-- **5 Comprehensive Modules**: Ch 18-22 with 15 questions each (75 total)
+- **6 Comprehensive Modules**: Ch 18-22 + Quiz 1 Review with 25 questions each (150 total)
 - **Scoring System**: Base 100 points per correct answer
 - **Streak Multipliers**: 1.5x (3 streak), 2x (5 streak), 3x (10 streak)
 - **Risk Mode**: Double points or lose 500 - high stakes!
@@ -95,20 +95,23 @@ The leaderboard feature requires Firebase configuration. The app will work witho
 
 ## Course Content
 
-### Ch 18: Immune Assessment
-Anatomy, function, immunity types, WBC, first/second-line defenses
+### Ch 18: Immune Assessment (25 questions)
+Anatomy, function, immunity types, WBC, first/second-line defenses, complement, interferons
 
-### Ch 19: Immune Disorders
+### Ch 19: Immune Disorders (25 questions)
 Hypersensitivities (I-IV), allergies, anaphylaxis, autoimmunity, transplant rejection
 
-### Ch 20: Connective Tissue
-OA vs RA, Lupus, Gout, Scleroderma, CREST syndrome, Fibromyalgia
+### Ch 20: Connective Tissue (25 questions)
+OA vs RA, Lupus, Gout, Scleroderma, CREST syndrome, DMARDs, biologics
 
-### Ch 21: MDROs
-Transmission routes, MRSA, VRE, C. diff, CRE, antibiotic stewardship, PPE
+### Ch 21: MDROs (25 questions)
+Transmission routes, MRSA, VRE, C. diff, CRE, TB, antibiotic stewardship, PPE, isolation precautions
 
-### Ch 22: HIV/AIDS
-Progression, CD4 counts, PrEP/PEP, ART, opportunistic infections, U=U
+### Ch 22: HIV/AIDS (25 questions)
+Progression, CD4 counts, PrEP/PEP, ART, opportunistic infections, U=U, adherence, resistance
+
+### Review for Quiz 1 (25 questions)
+Comprehensive mixed review covering all Ch 18-22 concepts for exam preparation
 
 ## Technologies
 - React 18
