@@ -11,6 +11,7 @@ import { db, auth } from './firebase';
 import { enrichQuestions, getExamTip } from './questionTags/index';
 import { MODES, getPool } from './modes';
 import InstructorMode from './components/InstructorMode';
+import { transformToRankedQuestion, scoreRationale, calculateTimeMultiplier, detectAnswerPattern } from './questionTransformer';
 
 // Log Firebase status
 console.log('Firebase initialized:', { db: !!db, auth: !!auth });
@@ -1173,6 +1174,13 @@ export default function RNMasteryGame() {
   const [hiddenOptions, setHiddenOptions] = useState([]);
   const [confidence, setConfidence] = useState(null);
   
+  // Ranked Mode specific
+  const [timeLeft, setTimeLeft] = useState(30);
+  const [timeSpent, setTimeSpent] = useState(0);
+  const [selectedRationale, setSelectedRationale] = useState(null);
+  const [showRationaleSelection, setShowRationaleSelection] = useState(false);
+  const [recentAnswerIndices, setRecentAnswerIndices] = useState([]);
+  
   // Instructor Mode
   const [showInstructorMode, setShowInstructorMode] = useState(false);
   const [customChapters, setCustomChapters] = useState([]);
@@ -1245,6 +1253,25 @@ export default function RNMasteryGame() {
     loadUnlockedChapters();
   }, []);
 
+  // --- TIMER FOR RANKED MODE ---
+  useEffect(() => {
+    if (gameMode !== 'ranked' || gameState !== 'playing' || showRationale) return;
+    
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          // Time's up - auto submit with current answer or null
+          handleAnswer(selectedOption, 'TIMEOUT');
+          return 0;
+        }
+        return prev - 1;
+      });
+      setTimeSpent(prev => prev + 1);
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [gameMode, gameState, showRationale, currentQuestionIndex, selectedOption]);
+
   // --- FIREBASE AUTH & DATA LOADING ---
   useEffect(() => {
     if (!auth || !db) {
@@ -1312,28 +1339,48 @@ export default function RNMasteryGame() {
   // --- GAME LOGIC ---
   const startChapter = (chapter, mode = MODES.CHAPTER_REVIEW) => {
     // Get questions directly from the selected chapter
-    const chapterQuestions = enrichQuestions(chapter.questions);
+    let chapterQuestions = enrichQuestions(chapter.questions);
     
     if (chapterQuestions.length === 0) {
       alert("No questions found for this chapter.");
       return;
     }
     
+    // Transform questions for Ranked Mode
+    if (gameMode === 'ranked') {
+      chapterQuestions = chapterQuestions.map(q => transformToRankedQuestion(q));
+    }
+    
     setActiveChapter(chapter);
-    setQuestions(chapterQuestions); // Use chapter's own questions in original order
+    setQuestions(chapterQuestions);
     setCurrentQuestionIndex(0);
     setScore(0);
     setStreak(0);
     setCorrectCount(0);
     setIncorrectCount(0);
     setMissedQuestions([]);
+    setRecentAnswerIndices([]);
     setGameState('playing');
     resetTurn();
+    
+    // Start timer for Ranked Mode
+    if (gameMode === 'ranked') {
+      setTimeLeft(30);
+      setTimeSpent(0);
+    }
   };
 
   const resetTurn = () => {
     setSelectedOption(null);
     setConfidence(null);
+    setSelectedRationale(null);
+    setShowRationaleSelection(false);
+    
+    // Reset timer for ranked mode
+    if (gameMode === 'ranked') {
+      setTimeLeft(30);
+      setTimeSpent(0);
+    }
     setShowRationale(false);
     setAiExplanation(null);
     setFiftyFiftyUsed(false);
@@ -1353,17 +1400,57 @@ export default function RNMasteryGame() {
     setSelectedOption(optionIndex);
     setConfidence(confLevel);
     
+    // In Ranked Mode with rationale requirement, show rationale selection first
+    if (gameMode === 'ranked' && questions[currentQuestionIndex].requiresRationale && !showRationaleSelection) {
+      setShowRationaleSelection(true);
+      return; // Don't process answer yet
+    }
+    
     const q = questions[currentQuestionIndex];
     const isCorrect = optionIndex === q.correctIndex;
     
+    // Track answer pattern for ranked mode
+    if (gameMode === 'ranked') {
+      const newPattern = [...recentAnswerIndices, optionIndex].slice(-5);
+      setRecentAnswerIndices(newPattern);
+      
+      // Detect and warn about patterns
+      if (detectAnswerPattern(newPattern)) {
+        console.warn('Answer pattern detected - possible guessing');
+      }
+    }
+    
     // Calculate points
     let points = 0;
+    let timeMultiplier = 1.0;
+    let rationaleBonus = 0;
+    
     if (isCorrect) {
       setCorrectCount(correctCount + 1);
+      
       if (gameMode === 'ranked') {
+        // Base points
         points = confLevel === 'SURE' ? 150 : 100;
-        points += streak * 50; // Streak bonus
+        
+        // Streak bonus
+        points += streak * 50;
+        
+        // Time multiplier
+        timeMultiplier = calculateTimeMultiplier(timeSpent, q.timeLimit || 30);
+        points = Math.round(points * timeMultiplier);
+        
+        // Rationale bonus
+        if (q.requiresRationale && selectedRationale !== null) {
+          rationaleBonus = scoreRationale(selectedRationale, q.correctRationaleIndex || 0);
+          points += rationaleBonus;
+        }
+        
+        // Pattern penalty
+        if (detectAnswerPattern(recentAnswerIndices)) {
+          points = Math.round(points * 0.5); // 50% penalty for patterns
+        }
       }
+      
       setStreak(streak + 1);
     } else {
       setIncorrectCount(incorrectCount + 1);
@@ -1373,7 +1460,9 @@ export default function RNMasteryGame() {
       setMissedQuestions([...missedQuestions, {
         question: q,
         selectedAnswer: optionIndex,
-        questionNumber: currentQuestionIndex + 1
+        questionNumber: currentQuestionIndex + 1,
+        timeSpent: gameMode === 'ranked' ? timeSpent : null,
+        selectedRationale: gameMode === 'ranked' ? selectedRationale : null,
       }]);
       
       // Update weakness stats
@@ -1432,6 +1521,9 @@ export default function RNMasteryGame() {
           chapterTitle: activeChapter.title,
           isCorrect,
           confidence: confLevel,
+          timeSpent: gameMode === 'ranked' ? timeSpent : null,
+          timeMultiplier: gameMode === 'ranked' ? timeMultiplier : null,
+          rationaleCorrect: gameMode === 'ranked' && q.requiresRationale ? (selectedRationale === (q.correctRationaleIndex || 0)) : null,
           timestamp: serverTimestamp()
         }).catch(err => console.error('Analytics save error:', err));
       } catch (e) {
@@ -1754,6 +1846,15 @@ Rationale: ${missed.question.rationale}
                 {q.concept.replace(/_/g, ' ')}
               </div>
             )}
+            {gameMode === 'ranked' && (
+              <div className={`px-3 py-1 rounded-full border text-xs font-bold ${
+                timeLeft <= 10 ? 'bg-red-500/20 border-red-500 text-red-400 animate-pulse' :
+                timeLeft <= 20 ? 'bg-yellow-500/20 border-yellow-500 text-yellow-400' :
+                'bg-slate-800 border-slate-700 text-slate-300'
+              }`}>
+                ⏱️ {timeLeft}s
+              </div>
+            )}
           </div>
           
           <div className="flex items-center gap-6">
@@ -1815,32 +1916,68 @@ Rationale: ${missed.question.rationale}
 
           {/* Action Buttons */}
           {!showRationale ? (
-            <div className="flex gap-4">
-              <button 
-                onClick={useFiftyFifty} 
-                disabled={fiftyFiftyUsed} 
-                className="p-4 bg-slate-800 hover:bg-slate-700 text-purple-400 border border-slate-700 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                title="50/50 Lifeline"
-              >
-                <Split className="w-6 h-6" />
-              </button>
+            <>
+              {/* Rationale Selection for Ranked Mode */}
+              {showRationaleSelection && gameMode === 'ranked' && q.rationaleOptions && (
+                <div className="mb-6 p-6 bg-purple-900/20 border border-purple-500/30 rounded-xl">
+                  <h3 className="text-lg font-bold text-purple-300 mb-4">Select Your Reasoning:</h3>
+                  <div className="grid gap-2">
+                    {q.rationaleOptions.map((rationale, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setSelectedRationale(idx)}
+                        className={`p-3 rounded-lg text-left text-sm border-2 transition-all ${
+                          selectedRationale === idx
+                            ? 'bg-purple-500/20 border-purple-500 text-white'
+                            : 'bg-slate-800 border-slate-700 hover:border-purple-500 text-slate-300'
+                        }`}
+                      >
+                        {String.fromCharCode(65 + idx)}. {rationale}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               
-              <button 
-                onClick={() => handleAnswer(selectedOption, 'GUESS')} 
-                disabled={selectedOption === null} 
-                className="flex-1 py-4 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl font-bold transition-all disabled:opacity-50"
-              >
-                I'm Guessing 🤔
-              </button>
-              
-              <button 
-                onClick={() => handleAnswer(selectedOption, 'SURE')} 
-                disabled={selectedOption === null} 
-                className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-900/20 disabled:opacity-50"
-              >
-                I'm Sure! 🚀
-              </button>
-            </div>
+              <div className="flex gap-4">
+                {/* Hide 50/50 in Ranked Mode */}
+                {gameMode !== 'ranked' && (
+                  <button 
+                    onClick={useFiftyFifty} 
+                    disabled={fiftyFiftyUsed} 
+                    className="p-4 bg-slate-800 hover:bg-slate-700 text-purple-400 border border-slate-700 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="50/50 Lifeline"
+                  >
+                    <Split className="w-6 h-6" />
+                  </button>
+                )}
+                
+                {/* In ranked mode with rationale, only show submit after rationale selected */}
+                {(!showRationaleSelection || selectedRationale !== null) ? (
+                  <>
+                    <button 
+                      onClick={() => handleAnswer(selectedOption, 'GUESS')} 
+                      disabled={selectedOption === null} 
+                      className="flex-1 py-4 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl font-bold transition-all disabled:opacity-50"
+                    >
+                      I'm Guessing 🤔
+                    </button>
+                    
+                    <button 
+                      onClick={() => handleAnswer(selectedOption, 'SURE')} 
+                      disabled={selectedOption === null} 
+                      className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-900/20 disabled:opacity-50"
+                    >
+                      I'm Sure! 🚀
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex-1 py-4 bg-purple-600/20 border-2 border-purple-500 text-purple-300 rounded-xl font-bold text-center">
+                    Select a rationale to continue
+                  </div>
+                )}
+              </div>
+            </>
           ) : (
             /* Rationale Display */
             <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 animate-in fade-in zoom-in-95">
@@ -1877,29 +2014,36 @@ Rationale: ${missed.question.rationale}
               
               {/* AI Tutor & Next Button */}
               <div className="flex justify-between items-center pt-4 border-t border-slate-700">
-                {!aiExplanation ? (
-                  <button 
-                    onClick={handleAiTutor} 
-                    disabled={isAiLoading} 
-                    className="text-sm text-purple-400 hover:text-purple-300 flex items-center transition"
-                  >
-                    {isAiLoading ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                {/* Disable AI Tutor in Ranked Mode */}
+                {gameMode !== 'ranked' && (
+                  <>
+                    {!aiExplanation ? (
+                      <button 
+                        onClick={handleAiTutor} 
+                        disabled={isAiLoading} 
+                        className="text-sm text-purple-400 hover:text-purple-300 flex items-center transition"
+                      >
+                        {isAiLoading ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-4 h-4 mr-2" />
+                        )}
+                        Get Mnemonic
+                      </button>
                     ) : (
-                      <Sparkles className="w-4 h-4 mr-2" />
+                      <div className="text-sm text-purple-300 flex items-start">
+                        <Sparkles className="w-3 h-3 mr-1 mt-0.5 shrink-0" /> 
+                        <span>{aiExplanation}</span>
+                      </div>
                     )}
-                    Get Mnemonic
-                  </button>
-                ) : (
-                  <div className="text-sm text-purple-300 flex items-start">
-                    <Sparkles className="w-3 h-3 mr-1 mt-0.5 shrink-0" /> 
-                    <span>{aiExplanation}</span>
-                  </div>
+                  </>
                 )}
+                
+                {gameMode === 'ranked' && <div></div>} {/* Spacer */}
                 
                 <button 
                   onClick={nextQuestion} 
-                  className="px-6 py-3 bg-white text-slate-900 font-bold rounded-xl hover:bg-slate-200 transition-colors flex items-center"
+                  className="px-6 py-3 bg-white text-slate-900 font-bold rounded-xl hover:bg-slate-200 transition-colors flex items-center ml-auto"
                 >
                   Next <ArrowRight className="ml-2 w-4 h-4" />
                 </button>
