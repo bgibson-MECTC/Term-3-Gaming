@@ -1280,7 +1280,12 @@ export default function RNMasteryGame() {
         const docSnap = await getDocs(collection(db, 'settings'));
         const settingsDoc = docSnap.docs.find(d => d.id === 'chapterAccess');
         if (settingsDoc) {
-          setUnlockedChapters(settingsDoc.data().unlocked || []);
+          const firebaseUnlocked = settingsDoc.data().unlocked || [];
+          // Always include 'day-to-be-wrong' regardless of Firebase settings
+          if (!firebaseUnlocked.includes('day-to-be-wrong')) {
+            firebaseUnlocked.push('day-to-be-wrong');
+          }
+          setUnlockedChapters(firebaseUnlocked);
         } else {
           // If no settings doc exists, unlock all by default
           setUnlockedChapters(['ch18', 'ch19', 'ch20', 'ch21', 'ch22', 'quiz1', 'day-to-be-wrong']);
