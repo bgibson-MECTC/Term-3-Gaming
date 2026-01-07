@@ -33,9 +33,9 @@ export const CLINICAL_JUDGMENT_SCENARIOS = {
 
 ⚠️ NO FULL LABS • NO VITALS • NO DIAGNOSIS CONFIRMATION`,
       options: [
-        "Patient A - Recent antibiotic + GI symptoms",
-        "Patient B - ICU transfer with fever history",
-        "Patient C - Draining wound + vulnerable roommate",
+        "Patient A",
+        "Patient B",
+        "Patient C",
         "Try to share the room between patients"
       ],
       correctIndex: 2,
@@ -108,10 +108,10 @@ export const CLINICAL_JUDGMENT_SCENARIOS = {
 **Symptoms:** New SOB, dry cough
 **ART adherence:** "Pretty good"`,
       options: [
-        "ART failure - patient is not adherent",
-        "PCP pneumonia - CD4 near 200 with respiratory symptoms",
-        "Anxiety - patient is worried about their diagnosis",
-        "Medication side effects - ART can cause respiratory symptoms"
+        "ART failure",
+        "PCP pneumonia",
+        "Anxiety",
+        "Medication side effects"
       ],
       correctIndex: 1,
       timeLimit: 60,
@@ -179,10 +179,10 @@ export const CLINICAL_JUDGMENT_SCENARIOS = {
 
 ⚠️ CHOOSE ONE - SEQUENCE DETERMINES OUTCOME`,
       options: [
-        "Start PEP immediately - time-sensitive medication",
-        "Obtain source patient labs first - need baseline data",
-        "Provide emotional support - employee is panicking",
-        "Complete incident documentation - required protocol"
+        "Start PEP immediately",
+        "Obtain source patient labs first",
+        "Provide emotional support",
+        "Complete incident documentation"
       ],
       correctIndex: 0,
       timeLimit: 30,
@@ -257,10 +257,10 @@ Students pick CD4 because it "sounds important" for HIV. This tests understandin
 
 **Patient D:** HIV-negative partner asking about PrEP`,
       options: [
-        "Patient A - lowest CD4 and non-adherent",
-        "Patient B - neurological symptoms suggest CNS infection",
-        "Patient C - CD4 90 is critically low",
-        "Patient D - PrEP education is important for prevention"
+        "Patient A",
+        "Patient B",
+        "Patient C",
+        "Patient D"
       ],
       correctIndex: 1,
       timeLimit: 45,
