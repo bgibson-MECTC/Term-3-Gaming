@@ -1616,7 +1616,9 @@ export default function RNMasteryGame() {
   };
 
   const resetTurn = () => {
-    setSelectedOption(null);
+    // Reset selectedOption based on next question type
+    const nextQ = questions[currentQuestionIndex + 1];
+    setSelectedOption(nextQ?.isMultiSelect ? [] : null);
     setConfidence(null);
     setSelectedRationale(null);
     setShowRationaleSelection(false);
@@ -1672,7 +1674,9 @@ export default function RNMasteryGame() {
   const useFiftyFifty = () => {
     if (fiftyFiftyUsed || showRationale) return;
     const q = questions[currentQuestionIndex];
-    const incorrectIndices = q.options.map((_, i) => i).filter(i => i !== q.correctIndex);
+    // For multi-select, filter out all correct answers
+    const correctIndices = Array.isArray(q.correctIndex) ? q.correctIndex : [q.correctIndex];
+    const incorrectIndices = q.options.map((_, i) => i).filter(i => !correctIndices.includes(i));
     const toHide = incorrectIndices.sort(() => Math.random() - 0.5).slice(0, 2);
     setHiddenOptions(toHide);
     setFiftyFiftyUsed(true);
@@ -1690,8 +1694,18 @@ export default function RNMasteryGame() {
     }
     
     const q = questions[currentQuestionIndex];
-    // If optionIndex is null (no answer selected), mark as incorrect
-    const isCorrect = optionIndex !== null && optionIndex === q.correctIndex;
+    // Handle multi-select questions
+    let isCorrect;
+    if (q.isMultiSelect && Array.isArray(q.correctIndex)) {
+      // For multi-select: check if selected array matches correct array
+      const selectedArr = Array.isArray(optionIndex) ? optionIndex.sort((a,b) => a-b) : [];
+      const correctArr = [...q.correctIndex].sort((a,b) => a-b);
+      isCorrect = selectedArr.length === correctArr.length && 
+                  selectedArr.every((val, idx) => val === correctArr[idx]);
+    } else {
+      // Single select: original logic
+      isCorrect = optionIndex !== null && optionIndex === q.correctIndex;
+    }
     
     // Custom scoring for "day-to-be-wrong" chapter
     const isDayToBeWrong = activeChapter === 'day-to-be-wrong';
@@ -2566,9 +2580,16 @@ Rationale: ${missed.question.rationale}
             </div>
           )}
           
-          <h2 className="text-2xl md:text-3xl font-bold leading-relaxed mb-8">
+          <h2 className="text-2xl md:text-3xl font-bold leading-relaxed mb-2">
             {q.text}
           </h2>
+          {q.isMultiSelect && (
+            <div className="mb-6">
+              <span className="text-sm font-semibold bg-purple-500/20 text-purple-300 px-3 py-1.5 rounded-full border border-purple-500/30 inline-block">
+                ✓ SELECT ALL THAT APPLY
+              </span>
+            </div>
+          )}
           
           {/* Display scenario context if present (for escalations) */}
           {q.scenario && (
@@ -2584,18 +2605,31 @@ Rationale: ${missed.question.rationale}
             {q.options.map((opt, idx) => {
               if (hiddenOptions.includes(idx)) return null;
               
+              // Sanitize option text - ensure it's a string and not accidentally containing rationale
+              const optionText = typeof opt === 'string' ? opt : String(opt);
+              
+              // Multi-select support
+              const isSelected = q.isMultiSelect 
+                ? (Array.isArray(selectedOption) && selectedOption.includes(idx))
+                : (selectedOption === idx);
+              
               let style = "p-5 rounded-xl border-2 text-left font-medium transition-all w-full flex items-center ";
               
               if (showRationale) {
-                if (idx === q.correctIndex) {
+                // For multi-select, highlight all correct answers
+                const isThisCorrect = q.isMultiSelect 
+                  ? (Array.isArray(q.correctIndex) && q.correctIndex.includes(idx))
+                  : (idx === q.correctIndex);
+                  
+                if (isThisCorrect) {
                   style += "bg-green-500/20 border-green-500 text-green-100";
-                } else if (idx === selectedOption) {
+                } else if (isSelected) {
                   style += "bg-red-500/20 border-red-500 text-red-100";
                 } else {
                   style += "bg-slate-800 border-slate-700 opacity-50";
                 }
               } else {
-                style += selectedOption === idx
+                style += isSelected
                   ? "bg-cyan-500/20 border-cyan-500 text-white"
                   : "bg-slate-800 border-slate-700 hover:border-cyan-500 hover:bg-slate-750";
               }
@@ -2607,13 +2641,28 @@ Rationale: ${missed.question.rationale}
                 <button 
                   key={idx} 
                   disabled={showRationale || isLocked}
-                  onClick={() => !isLocked && setSelectedOption(idx)}
+                  onClick={() => {
+                    if (isLocked) return;
+                    
+                    if (q.isMultiSelect) {
+                      // Multi-select: toggle selection
+                      const currentSelections = Array.isArray(selectedOption) ? selectedOption : [];
+                      if (currentSelections.includes(idx)) {
+                        setSelectedOption(currentSelections.filter(i => i !== idx));
+                      } else {
+                        setSelectedOption([...currentSelections, idx]);
+                      }
+                    } else {
+                      // Single select
+                      setSelectedOption(idx);
+                    }
+                  }}
                   className={style + (isLocked ? " cursor-not-allowed opacity-75" : "")}
                 >
-                  <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center mr-4 text-sm font-bold text-slate-300 shrink-0">
-                    {String.fromCharCode(65 + idx)}
+                  <div className={`w-8 h-8 rounded-${q.isMultiSelect ? 'lg' : 'full'} bg-slate-700 flex items-center justify-center mr-4 text-sm font-bold text-slate-300 shrink-0 ${isSelected && !showRationale ? 'bg-cyan-500 text-white' : ''}`}>
+                    {q.isMultiSelect && isSelected ? '✓' : String.fromCharCode(65 + idx)}
                   </div>
-                  {opt}
+                  {optionText}
                 </button>
               );
             })}
@@ -2662,7 +2711,11 @@ Rationale: ${missed.question.rationale}
                   <>
                     <button 
                       onClick={() => handleAnswer(selectedOption, 'GUESS')} 
-                      disabled={selectedOption === null} 
+                      disabled={
+                        q.isMultiSelect 
+                          ? !Array.isArray(selectedOption) || selectedOption.length === 0
+                          : selectedOption === null
+                      } 
                       className="flex-1 py-4 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl font-bold transition-all disabled:opacity-50"
                     >
                       I'm Guessing 🤔
@@ -2670,7 +2723,11 @@ Rationale: ${missed.question.rationale}
                     
                     <button 
                       onClick={() => handleAnswer(selectedOption, 'SURE')} 
-                      disabled={selectedOption === null} 
+                      disabled={
+                        q.isMultiSelect 
+                          ? !Array.isArray(selectedOption) || selectedOption.length === 0
+                          : selectedOption === null
+                      } 
                       className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-900/20 disabled:opacity-50"
                     >
                       I'm Sure! 🚀
