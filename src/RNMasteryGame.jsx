@@ -12,7 +12,7 @@ import { enrichQuestions, getExamTip } from './questionTags/index';
 import { MODES, getPool } from './modes';
 import InstructorMode from './components/InstructorMode';
 import { transformToRankedQuestion, scoreRationale, calculateTimeMultiplier, detectAnswerPattern } from './questionTransformer';
-import { getClinicalJudgmentQuestions } from './clinicalJudgmentScenarios';
+import { getClinicalJudgmentQuestions, ESCALATION_SCENARIOS } from './clinicalJudgmentScenarios';
 
 // Log Firebase status
 console.log('Firebase initialized:', { db: !!db, auth: !!auth });
@@ -1233,6 +1233,27 @@ export default function RNMasteryGame() {
   });
   const [rushAnswerWarnings, setRushAnswerWarnings] = useState(0);
   
+  // Day to be Wrong - Consequence Display
+  const [consequenceText, setConsequenceText] = useState(null);
+  
+  // Phase 2: Resource Management
+  const [resources, setResources] = useState({
+    isolationRooms: 1,
+    emergencyPasses: 1,
+    providerCalls: 1
+  });
+  const [escalationLevel, setEscalationLevel] = useState(0);
+  const [triggeredEscalations, setTriggeredEscalations] = useState([]);
+  
+  // Phase 3: Competitive Modes
+  const [competitiveMode, setCompetitiveMode] = useState('solo'); // 'solo', 'team', 'sudden-death'
+  const [teamName, setTeamName] = useState('');
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [suddenDeathActive, setSuddenDeathActive] = useState(false);
+  const [livesRemaining, setLivesRemaining] = useState(1);
+  const [teamBattles, setTeamBattles] = useState([]);
+  const [showModeSelector, setShowModeSelector] = useState(false);
+  
   const [analytics, setAnalytics] = useState(() => {
     const saved = localStorage.getItem('rnMasteryAnalytics');
     return saved ? JSON.parse(saved) : {
@@ -1302,6 +1323,12 @@ export default function RNMasteryGame() {
   // --- TIMER FOR RANKED MODE ---
   useEffect(() => {
     if (gameMode !== 'ranked' || gameState !== 'playing' || showRationale) return;
+    
+    // Get custom timer for day-to-be-wrong chapter questions
+    const currentQuestion = questions[currentQuestionIndex];
+    const maxTime = (activeChapter === 'day-to-be-wrong' && currentQuestion?.timeLimit) 
+      ? currentQuestion.timeLimit 
+      : 30;
     
     const timer = setInterval(() => {
       setTimeLeft(prev => {
@@ -1473,8 +1500,14 @@ export default function RNMasteryGame() {
   const startChapter = (chapter, mode = MODES.CHAPTER_REVIEW) => {
     const chapterId = chapter.id || chapter.chapterId;
     
-    // "A Day to be Wrong" bypasses study/ranked mode - always direct play
+    // "A Day to be Wrong" shows competitive mode selector
     if (chapterId === 'day-to-be-wrong') {
+      setShowModeSelector(true);
+      return;
+    }
+    
+    // Handle other chapters - bypass for non day-to-be-wrong
+    if (false && chapterId === 'day-to-be-wrong-old') {
       const chapterQuestions = enrichQuestions(chapter.questions);
       setActiveChapter(chapter);
       setQuestions(chapterQuestions);
@@ -1486,8 +1519,20 @@ export default function RNMasteryGame() {
       setMissedQuestions([]);
       setRecentAnswerIndices([]);
       setRushAnswerWarnings(0);
+      setConsequenceText(null);
+      // Reset Phase 2 resources
+      setResources({ isolationRooms: 1, emergencyPasses: 1, providerCalls: 1 });
+      setEscalationLevel(0);
+      setTriggeredEscalations([]);
       setGameState('playing');
       resetTurn();
+      // Set custom timer for first question
+      if (chapterQuestions[0]?.timeLimit) {
+        setTimeLeft(chapterQuestions[0].timeLimit);
+      } else {
+        setTimeLeft(60); // Default for this mode
+      }
+      setTimeSpent(0);
       return;
     }
     
@@ -1576,10 +1621,15 @@ export default function RNMasteryGame() {
     setSelectedRationale(null);
     setShowRationaleSelection(false);
     setLastRationaleTier(null);
+    setConsequenceText(null);
     
-    // Reset timer for ranked mode
+    // Reset timer for ranked mode with custom timeLimit
     if (gameMode === 'ranked') {
-      setTimeLeft(30);
+      const nextQuestion = questions[currentQuestionIndex + 1];
+      const customTime = (activeChapter === 'day-to-be-wrong' && nextQuestion?.timeLimit) 
+        ? nextQuestion.timeLimit 
+        : 30;
+      setTimeLeft(customTime);
       setTimeSpent(0);
     }
     setShowRationale(false);
@@ -1642,6 +1692,25 @@ export default function RNMasteryGame() {
     const q = questions[currentQuestionIndex];
     // If optionIndex is null (no answer selected), mark as incorrect
     const isCorrect = optionIndex !== null && optionIndex === q.correctIndex;
+    
+    // Custom scoring for "day-to-be-wrong" chapter
+    const isDayToBeWrong = activeChapter === 'day-to-be-wrong';
+    
+    // Display consequence for "day-to-be-wrong" chapter
+    if (isDayToBeWrong && q.consequences && optionIndex !== null) {
+      setConsequenceText(q.consequences[optionIndex] || null);
+    }
+    
+    // Phase 2: Check for resource requirement and consumption
+    if (isDayToBeWrong && q.requiresResource && isCorrect) {
+      const resourceType = q.requiresResource;
+      if (resources[resourceType] > 0) {
+        setResources({
+          ...resources,
+          [resourceType]: resources[resourceType] - 1
+        });
+      }
+    }
     
     // Anti-Memorization: Check for rush answers in Ranked Mode
     let isRushAnswer = false;
@@ -1728,7 +1797,16 @@ export default function RNMasteryGame() {
     } else if (isCorrect) {
       setCorrectCount(correctCount + 1);
       
-      if (gameMode === 'ranked') {
+      // Custom scoring for "A Day to be Wrong" chapter
+      if (isDayToBeWrong) {
+        // Simple scoring: +10 correct, +3 if took >45 seconds (delayed)
+        if (timeSpent > 45) {
+          points = 3; // Delayed correct answer
+        } else {
+          points = 10; // Full points for correct under time
+        }
+        setStreak(streak + 1);
+      } else if (gameMode === 'ranked') {
         // Check rationale quality first
         if (q.requiresRationale && selectedRationale !== null) {
           const rationaleResult = scoreRationale(selectedRationale, q.correctRationaleIndex || 0);
@@ -1791,6 +1869,25 @@ export default function RNMasteryGame() {
     } else {
       setIncorrectCount(incorrectCount + 1);
       setStreak(0);
+      
+      // Phase 3: Sudden Death - End game immediately on wrong answer
+      if (suddenDeathActive && !isCorrect) {
+        setLivesRemaining(0);
+        setScore(score + points);
+        setShowRationale(true);
+        
+        // Show elimination message after brief delay
+        setTimeout(() => {
+          alert(`💀 SUDDEN DEATH ELIMINATION!\n\nYou answered incorrectly on Question ${currentQuestionIndex + 1}.\n\nFinal Score: ${score + points}\nQuestions Survived: ${currentQuestionIndex}/${questions.length}\n\nOnly the perfect survive in Sudden Death mode!`);
+          setGameState('summary');
+        }, 2000);
+        return;
+      }
+      
+      // Custom penalty for "A Day to be Wrong" chapter
+      if (isDayToBeWrong) {
+        points = -10; // Wrong answer penalty
+      }
       
       // Track missed question
       setMissedQuestions([...missedQuestions, {
@@ -1884,9 +1981,48 @@ export default function RNMasteryGame() {
     }
     
     setShowRationale(true);
+    
+    // Phase 2: Trigger escalation if wrong answer on day-to-be-wrong (but not in sudden death)
+    if (isDayToBeWrong && !isCorrect && confLevel !== 'TIMEOUT' && !suddenDeathActive) {
+      const escalationKey = getEscalationForQuestion(q.id);
+      if (escalationKey && !triggeredEscalations.includes(escalationKey)) {
+        // Queue escalation to be inserted after this question
+        setTriggeredEscalations([...triggeredEscalations, escalationKey]);
+        setEscalationLevel(escalationLevel + 1);
+      }
+    }
+  };
+  
+  // Helper function to map questions to escalations
+  const getEscalationForQuestion = (questionId) => {
+    const escalationMap = {
+      'ld_q01_mdro_moral_injury': 'cdiff_outbreak',
+      'ld_q02_hiv_cd4_vs_viral_load': 'hiv_crisis',
+      'ld_q04_priority_flip': 'priority_code',
+      'ld_q05_needlestick_time': 'needlestick_disaster'
+    };
+    return escalationMap[questionId];
   };
 
   const nextQuestion = () => {
+    // Phase 2: Check if we need to insert an escalation question
+    if (activeChapter === 'day-to-be-wrong' && triggeredEscalations.length > 0) {
+      const nextEscalation = triggeredEscalations[0];
+      const escalationQuestion = ESCALATION_SCENARIOS[nextEscalation];
+      
+      if (escalationQuestion) {
+        // Insert escalation question into the queue
+        const updatedQuestions = [
+          ...questions.slice(0, currentQuestionIndex + 1),
+          escalationQuestion,
+          ...questions.slice(currentQuestionIndex + 1)
+        ];
+        setQuestions(updatedQuestions);
+        // Remove this escalation from pending list
+        setTriggeredEscalations(triggeredEscalations.slice(1));
+      }
+    }
+    
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       resetTurn();
@@ -2118,6 +2254,22 @@ Rationale: ${missed.question.rationale}
         uid: user.uid
       };
       
+      // Phase 3: Add competitive mode metadata
+      if (activeChapter.id === 'day-to-be-wrong') {
+        scoreData.mode = competitiveMode;
+        scoreData.escalationLevel = escalationLevel;
+        scoreData.resourcesPreserved = Object.values(resources).reduce((a, b) => a + b, 0);
+        
+        if (competitiveMode === 'sudden-death') {
+          scoreData.survived = livesRemaining > 0;
+          scoreData.questionsSurvived = correctCount;
+        }
+        
+        if (competitiveMode === 'team' && teamName) {
+          scoreData.teamName = teamName;
+        }
+      }
+      
       // Add Clinical Reasoning Score for ranked mode
       if (gameMode === 'ranked' && clinicalReasoningScore) {
         scoreData.clinicalReasoningScore = clinicalReasoningScore.total;
@@ -2336,6 +2488,45 @@ Rationale: ${missed.question.rationale}
                 ⏱️ {timeLeft}s
               </div>
             )}
+            
+            {/* Phase 3: Competitive Mode Indicators */}
+            {suddenDeathActive && (
+              <div className="px-3 py-1 rounded-full bg-red-500/30 border-2 border-red-500 text-xs font-bold text-red-300 flex items-center gap-2 animate-pulse">
+                💀 SUDDEN DEATH - 1 LIFE
+              </div>
+            )}
+            {competitiveMode === 'team' && teamName && (
+              <div className="px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500 text-xs font-bold text-purple-300 flex items-center gap-2">
+                👥 Team: {teamName}
+              </div>
+            )}
+            
+            {/* Phase 2: Resource Display for Day to be Wrong */}
+            {activeChapter === 'day-to-be-wrong' && !suddenDeathActive && (
+              <div className="flex items-center gap-2">
+                <div className={`px-2 py-1 rounded-md border text-xs font-bold ${
+                  resources.isolationRooms > 0 
+                    ? 'bg-blue-500/20 border-blue-500 text-blue-300' 
+                    : 'bg-slate-700/50 border-slate-600 text-slate-500 line-through'
+                }`}>
+                  🚪 ISO: {resources.isolationRooms}
+                </div>
+                <div className={`px-2 py-1 rounded-md border text-xs font-bold ${
+                  resources.emergencyPasses > 0 
+                    ? 'bg-red-500/20 border-red-500 text-red-300' 
+                    : 'bg-slate-700/50 border-slate-600 text-slate-500 line-through'
+                }`}>
+                  🚨 PASS: {resources.emergencyPasses}
+                </div>
+                <div className={`px-2 py-1 rounded-md border text-xs font-bold ${
+                  resources.providerCalls > 0 
+                    ? 'bg-purple-500/20 border-purple-500 text-purple-300' 
+                    : 'bg-slate-700/50 border-slate-600 text-slate-500 line-through'
+                }`}>
+                  📞 MD: {resources.providerCalls}
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="flex items-center gap-6">
@@ -2352,11 +2543,38 @@ Rationale: ${missed.question.rationale}
         <div className="flex-1 max-w-3xl mx-auto w-full p-8 flex flex-col justify-center">
           <div className="mb-2 text-slate-500 text-sm font-bold">
             Question {currentQuestionIndex + 1} / {questions.length}
+            {escalationLevel > 0 && (
+              <span className="ml-2 px-2 py-0.5 bg-red-500/20 border border-red-500 text-red-400 rounded text-xs font-bold">
+                🚨 ESCALATION LEVEL {escalationLevel}
+              </span>
+            )}
           </div>
+          
+          {/* Phase 2: Resource Warning */}
+          {q.requiresResource && resources[q.requiresResource] === 0 && (
+            <div className="mb-4 p-4 bg-red-900/30 border-2 border-red-500 rounded-xl">
+              <div className="flex items-center gap-3 text-red-300">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <div className="text-sm font-semibold">
+                  ⚠️ This question requires a <span className="font-bold">{q.requiresResource.replace(/([A-Z])/g, ' $1').toUpperCase()}</span> but you've already used it! 
+                  Choose the best alternative.
+                </div>
+              </div>
+            </div>
+          )}
           
           <h2 className="text-2xl md:text-3xl font-bold leading-relaxed mb-8">
             {q.text}
           </h2>
+          
+          {/* Display scenario context if present (for escalations) */}
+          {q.scenario && (
+            <div className="mb-6 p-4 bg-slate-800/50 border border-slate-700 rounded-xl">
+              <div className="text-sm text-slate-300 whitespace-pre-line leading-relaxed">
+                {q.scenario}
+              </div>
+            </div>
+          )}
 
           {/* Options */}
           <div className="grid gap-3 mb-8">
@@ -2485,6 +2703,38 @@ Rationale: ${missed.question.rationale}
                       <div className="flex items-center gap-2 text-orange-400 text-sm bg-orange-500/10 border border-orange-500/30 rounded-lg p-3">
                         <Timer className="w-4 h-4" />
                         <span className="font-semibold">⏱️ Time expired - No points awarded. Try to answer faster next time!</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Consequence Display for "A Day to be Wrong" */}
+                  {consequenceText && activeChapter === 'day-to-be-wrong' && (
+                    <div className="mb-4">
+                      <div className={`p-4 rounded-xl border-2 ${
+                        selectedOption === q.correctIndex 
+                          ? 'bg-green-900/20 border-green-500/40 text-green-100' 
+                          : 'bg-red-900/30 border-red-500/50 text-red-100'
+                      }`}>
+                        <div className="flex items-start gap-3">
+                          <Scale className="w-5 h-5 shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <div className="text-xs font-bold uppercase tracking-wider mb-1 opacity-80">
+                              Consequence
+                            </div>
+                            <div className="text-sm leading-relaxed whitespace-pre-line">
+                              {consequenceText}
+                            </div>
+                            {/* Resource consumption notification */}
+                            {q.requiresResource && selectedOption === q.correctIndex && (
+                              <div className="mt-3 pt-3 border-t border-green-500/30">
+                                <div className="flex items-center gap-2 text-xs font-bold text-green-300">
+                                  <CheckCircle className="w-4 h-4" />
+                                  <span>Used: {q.requiresResource.replace(/([A-Z])/g, ' $1').toUpperCase()}</span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -2826,12 +3076,13 @@ Rationale: ${missed.question.rationale}
 
   const LeaderboardScreen = () => {
     const [scores, setScores] = useState([]);
+    const [categoryFilter, setCategoryFilter] = useState('all'); // 'all', 'safest-unit', 'resource-master', 'sudden-death'
     
     useEffect(() => {
       if (!db) return;
       const q = query(
         collection(db, 'artifacts', appId, 'public', 'data', 'scores'),
-        limit(50)
+        limit(100)
       );
       const unsub = onSnapshot(q, (snap) => {
         const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -2840,10 +3091,54 @@ Rationale: ${missed.question.rationale}
       });
       return () => unsub();
     }, []);
+    
+    // Filter scores by category
+    const getFilteredScores = () => {
+      let filtered = scores.filter(s => s.chapterTitle === '⚖️ A Day to be Wrong');
+      
+      switch(categoryFilter) {
+        case 'safest-unit':
+          // Fewest escalations (look for lowest escalationLevel)
+          return filtered
+            .filter(s => s.escalationLevel !== undefined)
+            .sort((a, b) => {
+              if (a.escalationLevel === b.escalationLevel) {
+                return b.score - a.score; // Tiebreaker: higher score
+              }
+              return a.escalationLevel - b.escalationLevel;
+            })
+            .slice(0, 20);
+            
+        case 'resource-master':
+          // Most resources preserved (look for resourcesPreserved count)
+          return filtered
+            .filter(s => s.resourcesPreserved !== undefined)
+            .sort((a, b) => {
+              if (a.resourcesPreserved === b.resourcesPreserved) {
+                return b.score - a.score; // Tiebreaker: higher score
+              }
+              return b.resourcesPreserved - a.resourcesPreserved;
+            })
+            .slice(0, 20);
+            
+        case 'sudden-death':
+          // Sudden death survivors only
+          return filtered
+            .filter(s => s.mode === 'sudden-death' && s.survived === true)
+            .sort((a, b) => b.questionsSurvived - a.questionsSurvived)
+            .slice(0, 20);
+            
+        default:
+          // All scores
+          return filtered.slice(0, 50);
+      }
+    };
+    
+    const filteredScores = getFilteredScores();
 
     return (
       <div className="min-h-screen bg-slate-900 text-white p-6 flex flex-col items-center font-sans">
-        <div className="max-w-2xl w-full">
+        <div className="max-w-4xl w-full">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-3xl font-black flex items-center">
               <Crown className="w-8 h-8 mr-3 text-yellow-400" /> LEADERBOARD
@@ -2856,26 +3151,100 @@ Rationale: ${missed.question.rationale}
             </button>
           </div>
           
+          {/* Phase 3: Category Filters */}
+          <div className="mb-6 flex gap-3 flex-wrap">
+            <button
+              onClick={() => setCategoryFilter('all')}
+              className={`px-4 py-2 rounded-lg font-bold text-sm transition ${
+                categoryFilter === 'all'
+                  ? 'bg-cyan-500 text-white'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+              }`}
+            >
+              🏆 All Scores
+            </button>
+            <button
+              onClick={() => setCategoryFilter('safest-unit')}
+              className={`px-4 py-2 rounded-lg font-bold text-sm transition ${
+                categoryFilter === 'safest-unit'
+                  ? 'bg-green-500 text-white'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+              }`}
+            >
+              🛡️ Safest Unit
+            </button>
+            <button
+              onClick={() => setCategoryFilter('resource-master')}
+              className={`px-4 py-2 rounded-lg font-bold text-sm transition ${
+                categoryFilter === 'resource-master'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+              }`}
+            >
+              💎 Resource Master
+            </button>
+            <button
+              onClick={() => setCategoryFilter('sudden-death')}
+              className={`px-4 py-2 rounded-lg font-bold text-sm transition ${
+                categoryFilter === 'sudden-death'
+                  ? 'bg-red-500 text-white'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+              }`}
+            >
+              💀 Sudden Death Survivors
+            </button>
+          </div>
+          
+          {/* Category Description */}
+          <div className="mb-4 p-4 bg-slate-800/50 border border-slate-700 rounded-xl text-sm text-slate-300">
+            {categoryFilter === 'all' && '🏆 Top scores across all game modes'}
+            {categoryFilter === 'safest-unit' && '🛡️ Players who triggered the fewest escalations'}
+            {categoryFilter === 'resource-master' && '💎 Players who preserved the most resources'}
+            {categoryFilter === 'sudden-death' && '💀 Hall of Fame: Players who survived all 5 questions without a single mistake'}
+          </div>
+          
           <div className="space-y-2">
-            {scores.map((s, i) => (
-              <div 
-                key={s.id} 
-                className="bg-slate-800 p-4 rounded-xl flex items-center border border-slate-700 hover:border-slate-600 transition"
-              >
-                <div className={`w-8 font-bold ${
-                  i === 0 ? 'text-yellow-400' : i === 1 ? 'text-slate-400' : i === 2 ? 'text-orange-600' : 'text-slate-500'
-                }`}>
-                  #{i + 1}
-                </div>
-                
-                <div className="flex-1 ml-4">
-                  <div className="font-bold text-white">{s.playerName}</div>
-                  <div className="text-xs text-slate-400">{s.chapterTitle}</div>
-                </div>
-                
-                <div className="text-cyan-400 font-mono font-bold text-lg">{s.score}</div>
+            {filteredScores.length === 0 ? (
+              <div className="text-center py-12 text-slate-400">
+                <p className="text-lg">No scores yet in this category</p>
+                <p className="text-sm mt-2">Be the first to make the leaderboard!</p>
               </div>
-            ))}
+            ) : (
+              filteredScores.map((s, i) => (
+                <div 
+                  key={s.id} 
+                  className="bg-slate-800 p-4 rounded-xl flex items-center border border-slate-700 hover:border-slate-600 transition"
+                >
+                  <div className={`w-8 font-bold ${
+                    i === 0 ? 'text-yellow-400' : i === 1 ? 'text-slate-400' : i === 2 ? 'text-orange-600' : 'text-slate-500'
+                  }`}>
+                    #{i + 1}
+                  </div>
+                  
+                  <div className="flex-1 ml-4">
+                    <div className="font-bold text-white flex items-center gap-2">
+                      {s.playerName}
+                      {s.mode === 'sudden-death' && <span className="text-red-400 text-xs">💀</span>}
+                      {s.mode === 'team' && <span className="text-purple-400 text-xs">👥</span>}
+                    </div>
+                    <div className="text-xs text-slate-400 flex items-center gap-3 mt-1">
+                      <span>{s.chapterTitle}</span>
+                      {categoryFilter === 'safest-unit' && s.escalationLevel !== undefined && (
+                        <span className="text-green-400">🛡️ {s.escalationLevel} escalations</span>
+                      )}
+                      {categoryFilter === 'resource-master' && s.resourcesPreserved !== undefined && (
+                        <span className="text-blue-400">💎 {s.resourcesPreserved}/3 resources</span>
+                      )}
+                      {categoryFilter === 'sudden-death' && s.questionsSurvived !== undefined && (
+                        <span className="text-red-400">💀 {s.questionsSurvived}/5 perfect</span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="text-cyan-400 font-mono font-bold text-lg">{s.score}</div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -2906,6 +3275,188 @@ Rationale: ${missed.question.rationale}
     }} />;
   }
   
+  // Phase 3: Mode Selector for Day to be Wrong
+  const ModeSelectorScreen = () => {
+    const [localTeamName, setLocalTeamName] = useState('');
+    const [showTeamInput, setShowTeamInput] = useState(false);
+    
+    const startWithMode = (mode) => {
+      // Team mode requires team name
+      if (mode === 'team' && !showTeamInput) {
+        setShowTeamInput(true);
+        return;
+      }
+      
+      if (mode === 'team' && !localTeamName.trim()) {
+        alert('Please enter a team name!');
+        return;
+      }
+      
+      setCompetitiveMode(mode);
+      
+      if (mode === 'sudden-death') {
+        setSuddenDeathActive(true);
+        setLivesRemaining(1);
+      }
+      
+      if (mode === 'team') {
+        setTeamName(localTeamName.trim());
+      }
+      
+      // Start the actual game
+      const chapter = INITIAL_DATA.find(c => c.id === 'day-to-be-wrong');
+      const chapterQuestions = enrichQuestions(chapter.questions);
+      setActiveChapter(chapter);
+      setQuestions(chapterQuestions);
+      setCurrentQuestionIndex(0);
+      setScore(0);
+      setStreak(0);
+      setCorrectCount(0);
+      setIncorrectCount(0);
+      setMissedQuestions([]);
+      setRecentAnswerIndices([]);
+      setRushAnswerWarnings(0);
+      setConsequenceText(null);
+      setResources({ isolationRooms: 1, emergencyPasses: 1, providerCalls: 1 });
+      setEscalationLevel(0);
+      setTriggeredEscalations([]);
+      setShowModeSelector(false);
+      setGameState('playing');
+      resetTurn();
+      if (chapterQuestions[0]?.timeLimit) {
+        setTimeLeft(chapterQuestions[0].timeLimit);
+      } else {
+        setTimeLeft(60);
+      }
+      setTimeSpent(0);
+    };
+    
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white flex items-center justify-center p-6">
+        <div className="max-w-4xl w-full">
+          <button 
+            onClick={() => { setShowModeSelector(false); setGameState('menu'); }} 
+            className="mb-6 text-slate-400 hover:text-white transition flex items-center"
+          >
+            ← Back to Menu
+          </button>
+          
+          <div className="text-center mb-12">
+            <div className="text-6xl mb-4">⚖️</div>
+            <h1 className="text-4xl font-black mb-3">A Day to be Wrong</h1>
+            <p className="text-lg text-slate-300">Choose Your Challenge Mode</p>
+          </div>
+          
+          {/* Team Name Input Modal */}
+          {showTeamInput && (
+            <div className="mb-8 p-6 bg-purple-900/30 border-2 border-purple-500 rounded-2xl">
+              <h3 className="text-xl font-bold mb-4 text-purple-300">👥 Enter Team Name</h3>
+              <input
+                type="text"
+                value={localTeamName}
+                onChange={(e) => setLocalTeamName(e.target.value)}
+                placeholder="e.g., Night Shift Warriors, Code Blue Crew"
+                className="w-full px-4 py-3 bg-slate-800 border border-purple-500 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-purple-400 mb-4"
+                maxLength={30}
+                autoFocus
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setShowTeamInput(false); setLocalTeamName(''); }}
+                  className="flex-1 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => startWithMode('team')}
+                  className="flex-1 py-2 bg-purple-500 hover:bg-purple-400 rounded-lg font-bold transition"
+                >
+                  Start Battle →
+                </button>
+              </div>
+            </div>
+          )}
+          
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Solo Mode */}
+            <button
+              onClick={() => startWithMode('solo')}
+              className="bg-slate-800 border-2 border-cyan-500 rounded-2xl p-8 hover:bg-slate-750 transition-all group"
+            >
+              <div className="text-5xl mb-4">🎯</div>
+              <h3 className="text-2xl font-bold mb-3">Solo Mission</h3>
+              <p className="text-slate-400 text-sm mb-4">
+                Face the challenges alone. Master decision-making under pressure.
+              </p>
+              <div className="text-xs text-slate-500 space-y-1">
+                <div>• 5-9 questions</div>
+                <div>• Resource management</div>
+                <div>• Escalations on mistakes</div>
+                <div>• Personal best tracking</div>
+              </div>
+              <div className="mt-6 px-4 py-2 bg-cyan-500/20 text-cyan-300 rounded-lg text-sm font-bold">
+                Classic Mode
+              </div>
+            </button>
+            
+            {/* Team Battle Mode */}
+            <button
+              onClick={() => startWithMode('team')}
+              className="bg-slate-800 border-2 border-purple-500 rounded-2xl p-8 hover:bg-slate-750 transition-all group relative overflow-hidden"
+            >
+              <div className="absolute top-2 right-2 bg-purple-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                COMPETITIVE
+              </div>
+              <div className="text-5xl mb-4">👥</div>
+              <h3 className="text-2xl font-bold mb-3">Team Battle</h3>
+              <p className="text-slate-400 text-sm mb-4">
+                Compete against other teams in real-time. Fastest wins!
+              </p>
+              <div className="text-xs text-slate-500 space-y-1">
+                <div>• Real-time competition</div>
+                <div>• Team leaderboard</div>
+                <div>• Shared resources</div>
+                <div>• Live rankings</div>
+              </div>
+              <div className="mt-6 px-4 py-2 bg-purple-500/20 text-purple-300 rounded-lg text-sm font-bold">
+                Multiplayer
+              </div>
+            </button>
+            
+            {/* Sudden Death Mode */}
+            <button
+              onClick={() => startWithMode('sudden-death')}
+              className="bg-slate-800 border-2 border-red-500 rounded-2xl p-8 hover:bg-slate-750 transition-all group relative overflow-hidden"
+            >
+              <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold animate-pulse">
+                EXTREME
+              </div>
+              <div className="text-5xl mb-4">💀</div>
+              <h3 className="text-2xl font-bold mb-3">Sudden Death</h3>
+              <p className="text-slate-400 text-sm mb-4">
+                One mistake and you're out. Ultimate high-stakes challenge.
+              </p>
+              <div className="text-xs text-slate-500 space-y-1">
+                <div>• 1 life only</div>
+                <div>• No escalations</div>
+                <div>• Instant elimination</div>
+                <div>• Hall of survivors</div>
+              </div>
+              <div className="mt-6 px-4 py-2 bg-red-500/20 text-red-300 rounded-lg text-sm font-bold">
+                Expert Only
+              </div>
+            </button>
+          </div>
+          
+          <div className="mt-8 text-center text-sm text-slate-400">
+            <p>💡 Tip: Start with Solo Mode to learn the mechanics before trying competitive modes</p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+  
+  if (showModeSelector) return <ModeSelectorScreen />;
   if (gameState === 'menu') return <MenuScreen />;
   if (gameState === 'playing') return <GameScreen />;
   if (gameState === 'summary') return <SummaryScreen />;

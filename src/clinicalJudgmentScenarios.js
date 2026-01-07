@@ -35,6 +35,13 @@ export const CLINICAL_JUDGMENT_SCENARIOS = {
         "Rotate them every 8 hours to share the resource equally"
       ],
       correctIndex: 2,
+      timeLimit: 60, // seconds
+      consequences: {
+        0: "❌ **C. diff spreads!** Two more patients develop diarrhea. Negative pressure was wasted on contact precautions.",
+        1: "❌ **CRE patient stable.** But immunocompromised roommate now has MRSA infection from Patient C's wound drainage.",
+        2: "✅ **Least dangerous choice.** Immunocompromised patient protected. Though negative pressure isn't ideal for MRSA.",
+        3: "❌ **Unit outbreak!** Moving infected patients around increased transmission. Three staff members now exposed."
+      },
       rationale: `**Best choice: Patient C** (though still not ideal)
 
 **Why C is least dangerous:**
@@ -85,6 +92,13 @@ export const CLINICAL_JUDGMENT_SCENARIOS = {
         "Medication side effects - ART can cause respiratory symptoms"
       ],
       correctIndex: 1,
+      timeLimit: 60,
+      consequences: {
+        0: "❌ **Delayed diagnosis!** Viral load rebounds to 50,000 in 2 weeks. Patient was actually adherent.",
+        1: "✅ **Life saved.** Started on Bactrim. Chest X-ray confirms PCP. Patient hospitalized but stable.",
+        2: "❌ **Patient deteriorates.** Dismissed as anxiety. Now in ICU with respiratory failure. PCP diagnosis missed for 48 hours.",
+        3: "❌ **Critical delay.** Respiratory symptoms worsened. Emergency intubation required. Should have suspected OI first."
+      },
       rationale: `**Best choice: PCP pneumonia**
 
 **Why PCP is the priority concern:**
@@ -138,6 +152,12 @@ export const CLINICAL_JUDGMENT_SCENARIOS = {
       ],
       correctIndex: [0, 1, 2, 4], // Multiple correct answers
       isMultiSelect: true,
+      timeLimit: 90,
+      consequences: {
+        correct: "✅ **Comprehensive screening complete.** PrEP initiated safely with all necessary precautions.",
+        partial: "⚠️ **Incomplete workup.** Missing critical labs puts patient at risk for complications.",
+        wrong: "❌ **Dangerous gaps!** Patient started PrEP without required screening. High risk for resistance or organ damage."
+      },
       rationale: `**Required actions: HIV test, Hepatitis B screening, Renal function labs, Condom counseling**
 
 **Why each is required or not:**
@@ -202,6 +222,13 @@ Students pick CD4 because it "sounds important" for HIV. This tests understandin
         "Patient D - PrEP education is important for prevention"
       ],
       correctIndex: 1,
+      timeLimit: 45,
+      consequences: {
+        0: "❌ **Patient B seizes in hallway!** Focused on labs instead of acute neuro symptoms. Now emergent intubation needed.",
+        1: "✅ **Crisis averted.** LP shows cryptococcal meningitis. Amphotericin started. Patient stabilized in ICU.",
+        2: "❌ **Patient B found unresponsive!** CD4 90 is chronic; acute neuro symptoms were the emergency. Delayed care = poor outcome.",
+        3: "❌ **Patient B codes!** PrEP education can wait. Severe headache + photophobia = meningitis until proven otherwise."
+      },
       rationale: `**Best choice: Patient B**
 
 **Why Patient B is the priority:**
@@ -255,6 +282,13 @@ Students reflexively choose "lowest CD4" without reading symptoms. This tests cl
         "Exposure severity - need to determine source patient's status"
       ],
       correctIndex: 2,
+      timeLimit: 30,
+      consequences: {
+        0: "⚠️ **Documentation delayed but PEP started.** Better late than never, but golden window narrowing.",
+        1: "❌ **Emotional support given.** But PEP window continues to close. Now 3+ hours post-exposure. Effectiveness dropping.",
+        2: "✅ **PEP initiated immediately.** Started within ideal window despite delay. Source patient testing underway.",
+        3: "❌ **Waiting for source labs!** PEP not started. Now 4+ hours post-exposure. Critical time wasted."
+      },
       rationale: `**Best choice: Missed PEP window**
 
 **Why PEP delay is the priority:**
@@ -306,6 +340,125 @@ Students think "we need to know the source first" - NO. Start PEP while investig
       examTip: "Time-sensitive interventions can't wait for complete information. PEP now, investigate later."
     }
   ]
+};
+
+// PHASE 2: ESCALATION SCENARIOS - Triggered by wrong answers
+export const ESCALATION_SCENARIOS = {
+  // Triggered if Q1 wrong (MDRO isolation) - C. diff outbreak
+  cdiff_outbreak: {
+    id: "ld_escalation_cdiff",
+    text: "🚨 ESCALATION: Two more patients now have diarrhea. Administration demands an action plan. What do you do FIRST?",
+    scenario: `**New Development:**
+- Patients D & E: Acute watery diarrhea started 24h after ED visit
+- Both were in hallway beds near Patient A
+- Lab confirms: Patient A positive for C. diff
+- Infection control called emergency meeting`,
+    options: [
+      "Close the unit to new admissions immediately",
+      "Use your EMERGENCY PASS to get rapid cleaning/disinfection",
+      "Send mass email to all staff about handwashing",
+      "Call provider to order empiric vancomycin for all exposed patients"
+    ],
+    correctIndex: 1,
+    timeLimit: 45,
+    requiresResource: "emergencyPasses",
+    consequences: {
+      0: "❌ **Unit closed!** Administration furious. -20 beds = patients diverted. Your manager is now being questioned.",
+      1: "✅ **EMERGENCY PASS used wisely.** Rapid bleach cleaning prevents further spread. Outbreak contained at 3 cases.",
+      2: "❌ **Email ignored.** C. diff spores survive alcohol sanitizer. Six patients now infected.",
+      3: "❌ **Provider refuses.** 'I'm not treating email notifications.' Outbreak continues. Seven cases by week end."
+    },
+    rationale: "Emergency passes exist for outbreaks. Rapid environmental disinfection (bleach) is the priority for C. diff spores. Closing units is administrative last resort.",
+    skill: ["CLINICAL_JUDGMENT", "INFECTION_CONTROL"],
+    bloom: "EVALUATE"
+  },
+
+  // Triggered if Q2 wrong (HIV labs) - Patient decompensates
+  hiv_crisis: {
+    id: "ld_escalation_hiv_crisis",
+    text: "🚨 ESCALATION: Patient with CD4 count 12 now has seizures. You delayed care. What NOW?",
+    scenario: `**Crisis:**
+- Patient seizing in hallway
+- No bed available in ICU
+- You have ONE PROVIDER CALL available
+- Code team is at another emergency`,
+    options: [
+      "Use PROVIDER CALL for emergency neurology consult",
+      "Start seizure precautions and wait for code team",
+      "Transfer to ICU immediately using your authority",
+      "Give lorazepam and hope it stops"
+    ],
+    correctIndex: 0,
+    timeLimit: 30,
+    requiresResource: "providerCalls",
+    consequences: {
+      0: "✅ **PROVIDER CALL justified.** MD orders STAT MRI and antifungals. Cryptococcal meningitis confirmed. Patient survives with deficits.",
+      1: "❌ **Patient falls during seizure.** Head injury. Now intubated. Family considering lawsuit.",
+      2: "❌ **No ICU bed available!** Transfer request denied. Patient continues seizing. Permanent brain damage.",
+      3: "❌ **Seizure stops... then recurs.** Lorazepam bought 20 minutes. Not enough. Patient codes."
+    },
+    rationale: "Provider calls are for emergencies. CD4 of 12 + seizures = life-threatening opportunistic infection needing immediate specialist intervention.",
+    skill: ["CLINICAL_JUDGMENT", "NEURO_ASSESSMENT"],
+    bloom: "EVALUATE"
+  },
+
+  // Triggered if Q4 wrong (Priority flip) - Patient B codes
+  priority_code: {
+    id: "ld_escalation_priority_code",
+    text: "🚨 ESCALATION: Patient B is coding from unrecognized meningitis. Code team needs direction. What's your call?",
+    scenario: `**Code Blue:**
+- Patient B unresponsive, seizure → cardiac arrest
+- Code team running ACLS
+- You're charge nurse - they need post-ROSC plan
+- One ISOLATION ROOM available for post-code care`,
+    options: [
+      "ICU admission, empiric antibiotics, isolation room for infection risk",
+      "Post-code monitoring in ED, save isolation room",
+      "Transfer to outside hospital with neuro-ICU",
+      "Continue code - outcome poor with delayed treatment"
+    ],
+    correctIndex: 0,
+    timeLimit: 30,
+    requiresResource: "isolationRooms",
+    consequences: {
+      0: "✅ **ISOLATION ROOM used appropriately.** ROSC achieved. Amphotericin started. Critical but alive.",
+      1: "❌ **Staff exposure!** Cryptococcal meningitis now exposed entire ED. Three nurses out sick. Public health investigating.",
+      2: "❌ **Transfer denied.** 'Too unstable to move.' Patient dies during preparation. Medical examiner case.",
+      3: "❌ **Code called.** Family devastated. Your initial priority error led here. Preventable death."
+    },
+    rationale: "Post-ROSC care for infectious meningitis requires isolation. Staff safety + patient care. This is when resources get used.",
+    skill: ["CLINICAL_JUDGMENT", "CODE_MANAGEMENT"],
+    bloom: "EVALUATE"
+  },
+
+  // Triggered if Q5 wrong (Needle stick) - PEP window closing
+  needlestick_disaster: {
+    id: "ld_escalation_needlestick",
+    text: "🚨 ESCALATION: 4 hours post-exposure. PEP effectiveness dropping. Employee health closed. What now?",
+    scenario: `**Critical Window:**
+- Now 4 hours since needle stick
+- Source patient: HIV+ (uncontrolled), HCV+, HBsAg unknown
+- Employee health closed until 8am (4 more hours)
+- You have one EMERGENCY PASS to override protocols`,
+    options: [
+      "Use EMERGENCY PASS - activate 24/7 occupational health on-call",
+      "Wait for employee health in morning, document well",
+      "Send RN to ED as 'patient' for PEP",
+      "Give leftover HIV meds from pharmacy stock"
+    ],
+    correctIndex: 0,
+    timeLimit: 30,
+    requiresResource: "emergencyPasses",
+    consequences: {
+      0: "✅ **EMERGENCY PASS justified.** On-call MD orders PEP within 30 min. Optimal window maintained.",
+      1: "❌ **8 hours total delay.** PEP effectiveness significantly reduced. RN's anxiety through the roof. Risk counseling fails.",
+      2: "❌ **ED refuses.** 'This is occupational exposure, wrong department.' Now 6 hours delayed. Nurses' union filing grievance.",
+      3: "❌ **Medication error report filed.** Wrong PEP regimen given. Now need correct meds + report incident. Trust destroyed."
+    },
+    rationale: "PEP works best within 2 hours. Emergency passes exist for staff safety emergencies. This is textbook appropriate use.",
+    skill: ["CLINICAL_JUDGMENT", "OCCUPATIONAL_SAFETY"],
+    bloom: "EVALUATE"
+  }
 };
 
 /**
