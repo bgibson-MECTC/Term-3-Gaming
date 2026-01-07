@@ -14,8 +14,8 @@
  */
 
 export const CLINICAL_JUDGMENT_SCENARIOS = {
-  id: 'least-dangerous',
-  title: '⚖️ Least Dangerous - Clinical Judgment',
+  id: 'day-to-be-wrong',
+  title: '⚖️ A Day to be Wrong',
   icon: '⚖️',
   description: 'Every answer is wrong. Pick the least dangerous risk.',
   questions: [
@@ -314,8 +314,8 @@ Students think "we need to know the source first" - NO. Start PEP while investig
 export function getClinicalJudgmentQuestions() {
   return CLINICAL_JUDGMENT_SCENARIOS.questions.map(q => ({
     ...q,
-    chapter: 'least-dangerous',
-    chapterId: 'least-dangerous',
+    chapter: 'day-to-be-wrong',
+    chapterId: 'day-to-be-wrong',
     // Mark all as clinical judgment questions
     skill: q.skill || ["CLINICAL_JUDGMENT"],
     bloom: q.bloom || "EVALUATE",

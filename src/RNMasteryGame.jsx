@@ -1151,12 +1151,12 @@ const INITIAL_DATA = [
       }
     ]
   },
-  // CLINICAL JUDGMENT MODULE - "Least Dangerous" Classroom Activity
+  // CLINICAL JUDGMENT MODULE - "A Day to be Wrong" Classroom Activity
   {
-    id: 'least-dangerous',
-    title: '⚖️ Least Dangerous',
+    id: 'day-to-be-wrong',
+    title: '⚖️ A Day to be Wrong',
     icon: <Scale className="w-6 h-6" />,
-    description: '🔥🔥🔥🔥🔥 Clinical Judgment: Every answer is wrong - pick the least dangerous risk',
+    description: '🔥🔥🔥🔥🔥 Every answer is wrong - pick the least dangerous',
     questions: getClinicalJudgmentQuestions()
   }
 ];
