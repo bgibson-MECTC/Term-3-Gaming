@@ -2034,17 +2034,19 @@ export default function RNMasteryGame() {
     
     setShowRationale(true);
     
-    // Phase 2: Trigger escalation if wrong answer on day-to-be-wrong (but not in sudden death)
+    // Phase 2: Trigger escalation if wrong answer on day-to-be-wrong (but not in sudden death or team relay)
     console.log('🔍 Escalation Check:', { 
       isDayToBeWrong, 
       isCorrect, 
       confLevel, 
       suddenDeathActive,
+      competitiveMode,
       questionId: q.id,
       activeChapter: activeChapter?.id || activeChapter?.chapterId,
       triggeredEscalations
     });
-    if (isDayToBeWrong && !isCorrect && confLevel !== 'TIMEOUT' && !suddenDeathActive) {
+    // SOLO MODE ONLY: Full escalation system
+    if (isDayToBeWrong && !isCorrect && confLevel !== 'TIMEOUT' && !suddenDeathActive && competitiveMode === 'solo') {
       const escalationKey = getEscalationForQuestion(q.id);
       console.log('🚨 Escalation triggered:', escalationKey);
       if (escalationKey && !triggeredEscalations.includes(escalationKey)) {
@@ -2064,6 +2066,20 @@ export default function RNMasteryGame() {
         setTriggeredEscalations([...triggeredEscalations, escalationKey]);
         setEscalationLevel(escalationLevel + 1);
       }
+    }
+    
+    // SUDDEN DEATH MODE: Instant game over on wrong answer
+    if (suddenDeathActive && !isCorrect && confLevel !== 'TIMEOUT') {
+      console.log('💀 SUDDEN DEATH: Wrong answer - Game Over');
+      setTimeout(() => {
+        alert('💀 SUDDEN DEATH\n\nOne mistake ends it all.\n\nFinal Score: ' + score);
+        setGameState('summary');
+      }, 2000);
+    }
+    
+    // TEAM RELAY MODE: Different consequence messaging
+    if (competitiveMode === 'team' && !isCorrect) {
+      console.log('👥 TEAM MODE: Wrong answer affects team score');
     }
   };
   
@@ -3518,13 +3534,13 @@ Rationale: ${missed.question.rationale}
               <div className="text-5xl mb-4">🎯</div>
               <h3 className="text-2xl font-bold mb-3">Solo Mission</h3>
               <p className="text-slate-400 text-sm mb-4">
-                Face the challenges alone. Master decision-making under pressure.
+                Full escalation system. Every mistake triggers a crisis.
               </p>
               <div className="text-xs text-slate-500 space-y-1">
-                <div>• 5-9 questions</div>
-                <div>• Resource management</div>
-                <div>• Escalations on mistakes</div>
-                <div>• Personal best tracking</div>
+                <div>• 5 base questions</div>
+                <div>• Up to 4 escalations</div>
+                <div>• 3 limited resources</div>
+                <div>• Maximum 9 questions</div>
               </div>
               <div className="mt-6 px-4 py-2 bg-cyan-500/20 text-cyan-300 rounded-lg text-sm font-bold">
                 Classic Mode
@@ -3540,15 +3556,15 @@ Rationale: ${missed.question.rationale}
                 COMPETITIVE
               </div>
               <div className="text-5xl mb-4">👥</div>
-              <h3 className="text-2xl font-bold mb-3">Team Battle</h3>
+              <h3 className="text-2xl font-bold mb-3">Team Relay</h3>
               <p className="text-slate-400 text-sm mb-4">
-                Compete against other teams in real-time. Fastest wins!
+                Pass questions between teammates. Collaborate strategically!
               </p>
               <div className="text-xs text-slate-500 space-y-1">
-                <div>• Real-time competition</div>
-                <div>• Team leaderboard</div>
-                <div>• Shared resources</div>
-                <div>• Live rankings</div>
+                <div>• 2-4 players take turns</div>
+                <div>• Can pass tough questions</div>
+                <div>• Shared resource pool</div>
+                <div>• Team completion time</div>
               </div>
               <div className="mt-6 px-4 py-2 bg-purple-500/20 text-purple-300 rounded-lg text-sm font-bold">
                 Multiplayer
