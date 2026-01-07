@@ -1752,11 +1752,15 @@ export default function RNMasteryGame() {
     // Phase 2: Check for resource requirement and consumption
     if (isDayToBeWrong && q.requiresResource && isCorrect) {
       const resourceType = q.requiresResource;
+      console.log('💳 Resource check:', { resourceType, currentAmount: resources[resourceType], isCorrect });
       if (resources[resourceType] > 0) {
+        console.log('✅ Consuming resource:', resourceType);
         setResources({
           ...resources,
           [resourceType]: resources[resourceType] - 1
         });
+      } else {
+        console.log('⚠️ Resource already used:', resourceType);
       }
     }
     
