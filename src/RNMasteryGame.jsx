@@ -2543,11 +2543,24 @@ Rationale: ${missed.question.rationale}
   );
 
   const GameScreen = () => {
-    // Challenge Mode rendering
+    // Challenge Mode rendering - MUST CHECK FIRST before accessing questions array
     if (competitiveMode === 'challenge' && challengeGame) {
       const gameState = challengeGame.getState();
       const phase = gameState.phase;
       const currentScenario = gameState.currentScenario;
+      
+      // Safety check - if no scenario loaded yet, show loading
+      if (!currentScenario) {
+        return (
+          <div className="min-h-screen bg-slate-900 text-white p-6 flex items-center justify-center">
+            <div className="text-center">
+              <div className="text-6xl mb-4">⚔️</div>
+              <p className="text-xl font-bold">Loading Challenge Mode...</p>
+              <p className="text-sm text-slate-400 mt-2">Debug: Phase = {phase}</p>
+            </div>
+          </div>
+        );
+      }
       
       // JUDGE Phase: Show InstructorJudgePanel
       if (phase === PHASES.JUDGE) {
@@ -2734,6 +2747,18 @@ Rationale: ${missed.question.rationale}
     }
     
     // Regular game modes (Solo, Team, Sudden Death)
+    // Safety check: ensure questions array is loaded
+    if (!questions || questions.length === 0 || currentQuestionIndex >= questions.length) {
+      return (
+        <div className="min-h-screen bg-slate-900 text-white p-6 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-4xl mb-4">⏳</div>
+            <p className="text-xl">Loading questions...</p>
+          </div>
+        </div>
+      );
+    }
+    
     const q = questions[currentQuestionIndex];
     const examTip = getExamTip(q);
     
@@ -3859,13 +3884,19 @@ Rationale: ${missed.question.rationale}
         scenarios: challengeScenarios
       });
       
+      console.log('🎮 Challenge game created:', gameEngine);
+      
       // Start the first round by loading the first scenario
       gameEngine.nextScenario();
+      
+      console.log('🎮 First scenario loaded, state:', gameEngine.getState());
       
       setChallengeGame(gameEngine);
       setCompetitiveMode('challenge');
       setShowTeamLobby(false);
       setGameState('playing');
+      
+      console.log('🎮 Challenge Mode started!');
     };
     
     return (
