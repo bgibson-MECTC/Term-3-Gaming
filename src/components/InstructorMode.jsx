@@ -9,9 +9,10 @@ const InstructorMode = ({ onExit }) => {
   const [chapters, setChapters] = useState([]);
   const [editingChapter, setEditingChapter] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('chapters'); // 'chapters', 'locks', or 'analytics'
+  const [activeTab, setActiveTab] = useState('chapters'); // 'chapters', 'locks', 'analytics', or 'itemAnalysis'
   const [unlockedChapters, setUnlockedChapters] = useState([]);
   const [studentScores, setStudentScores] = useState([]);
+  const [analyticsData, setAnalyticsData] = useState([]);
 
   // Simple password (in production, use proper authentication)
   const INSTRUCTOR_PASSWORD = 'nursing2024';
@@ -21,8 +22,27 @@ const InstructorMode = ({ onExit }) => {
       loadChapters();
       loadChapterLocks();
       loadStudentScores();
+      loadAnalyticsData();
     }
   }, [isAuthenticated]);
+
+  const loadAnalyticsData = async () => {
+    if (!db) return;
+    try {
+      const q = query(
+        collection(db, 'artifacts', 'rn-mastery-game', 'public', 'data', 'analytics'),
+        orderBy('timestamp', 'desc')
+      );
+      const snapshot = await getDocs(q);
+      const analytics = [];
+      snapshot.forEach((doc) => {
+        analytics.push({ id: doc.id, ...doc.data() });
+      });
+      setAnalyticsData(analytics);
+    } catch (error) {
+      console.error('Error loading analytics:', error);
+    }
+  };
 
   const loadStudentScores = async () => {
     if (!db) return;
@@ -264,6 +284,17 @@ const InstructorMode = ({ onExit }) => {
               Chapter Management
             </button>
             <button
+              onClick={() => setActiveTab('itemAnalysis')}
+              className={`px-6 py-3 font-semibold transition-colors ${
+                activeTab === 'itemAnalysis'
+                  ? 'text-purple-600 border-b-2 border-purple-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <TrendingUp className="w-4 h-4 inline mr-2" />
+              Item Analysis
+            </button>
+            <button
               onClick={() => setActiveTab('locks')}
               className={`px-6 py-3 font-semibold transition-colors ${
                 activeTab === 'locks'
@@ -370,6 +401,14 @@ const InstructorMode = ({ onExit }) => {
               unlockedChapters={unlockedChapters}
               onToggleLock={toggleChapterLock}
               loading={loading}
+            />
+          )}
+
+          {activeTab === 'itemAnalysis' && (
+            <ItemAnalysis 
+              analyticsData={analyticsData}
+              loading={loading}
+              onRefresh={loadAnalyticsData}
             />
           )}
 
@@ -784,6 +823,179 @@ const StudentAnalytics = ({ scores, loading, onRefresh }) => {
           ))}
         </div>
       )}
+    </div>
+  );
+};
+
+const ItemAnalysis = ({ analyticsData, loading, onRefresh }) => {
+  // Calculate question-level statistics
+  const questionStats = {};
+  
+  analyticsData.forEach(entry => {
+    const qid = entry.questionId;
+    if (!qid) return;
+    
+    if (!questionStats[qid]) {
+      questionStats[qid] = {
+        questionId: qid,
+        chapter: entry.chapterTitle || 'Unknown',
+        totalAttempts: 0,
+        correctAttempts: 0,
+        incorrectAttempts: 0,
+        avgTimeSpent: 0,
+        timeData: [],
+        rationaleCorrect: 0,
+        rationaleIncorrect: 0,
+        incorrectOptions: {},
+      };
+    }
+    
+    const stats = questionStats[qid];
+    stats.totalAttempts++;
+    
+    if (entry.isCorrect) {
+      stats.correctAttempts++;
+    } else {
+      stats.incorrectAttempts++;
+    }
+    
+    if (entry.timeSpent) {
+      stats.timeData.push(entry.timeSpent);
+    }
+    
+    if (entry.rationaleTier === 'correct') {
+      stats.rationaleCorrect++;
+    } else if (entry.rationaleTier === 'incorrect' || entry.rationaleTier === 'weak') {
+      stats.rationaleIncorrect++;
+    }
+  });
+  
+  // Calculate derived metrics
+  Object.values(questionStats).forEach(stats => {
+    stats.percentCorrect = Math.round((stats.correctAttempts / stats.totalAttempts) * 100);
+    stats.avgTimeSpent = stats.timeData.length > 0 
+      ? Math.round(stats.timeData.reduce((a, b) => a + b, 0) / stats.timeData.length)
+      : 0;
+    
+    // Flag questions
+    if (stats.percentCorrect > 90) stats.flag = 'Too Easy';
+    else if (stats.percentCorrect < 40) stats.flag = 'Too Hard';
+    else stats.flag = 'Good';
+  });
+  
+  const sortedQuestions = Object.values(questionStats).sort((a, b) => a.percentCorrect - b.percentCorrect);
+  
+  if (loading) {
+    return <div className="text-center py-12 text-gray-500">Loading analytics...</div>;
+  }
+  
+  if (analyticsData.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-gray-600 mb-4">No question analytics available yet.</p>
+        <p className="text-sm text-gray-500">Analytics are collected when students answer questions in ranked mode.</p>
+      </div>
+    );
+  }
+  
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h3 className="text-xl font-bold">Item Analysis Dashboard</h3>
+          <p className="text-sm text-gray-600">Question performance metrics across all students</p>
+        </div>
+        <button
+          onClick={onRefresh}
+          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+        >
+          Refresh Data
+        </button>
+      </div>
+      
+      {/* Summary Cards */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="bg-blue-50 rounded-xl p-4">
+          <div className="text-3xl font-bold text-blue-600">{sortedQuestions.length}</div>
+          <div className="text-sm text-gray-600">Questions Analyzed</div>
+        </div>
+        <div className="bg-green-50 rounded-xl p-4">
+          <div className="text-3xl font-bold text-green-600">
+            {sortedQuestions.filter(q => q.flag === 'Good').length}
+          </div>
+          <div className="text-sm text-gray-600">Good Difficulty</div>
+        </div>
+        <div className="bg-red-50 rounded-xl p-4">
+          <div className="text-3xl font-bold text-red-600">
+            {sortedQuestions.filter(q => q.flag === 'Too Easy' || q.flag === 'Too Hard').length}
+          </div>
+          <div className="text-sm text-gray-600">Need Review</div>
+        </div>
+      </div>
+      
+      {/* Questions Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="p-3 text-left text-sm font-bold">Question ID</th>
+              <th className="p-3 text-left text-sm font-bold">Chapter</th>
+              <th className="p-3 text-center text-sm font-bold">Attempts</th>
+              <th className="p-3 text-center text-sm font-bold">% Correct</th>
+              <th className="p-3 text-center text-sm font-bold">Avg Time</th>
+              <th className="p-3 text-center text-sm font-bold">Rationale Acc</th>
+              <th className="p-3 text-center text-sm font-bold">Flag</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedQuestions.map(q => {
+              const rationaleAcc = q.rationaleCorrect + q.rationaleIncorrect > 0
+                ? Math.round((q.rationaleCorrect / (q.rationaleCorrect + q.rationaleIncorrect)) * 100)
+                : null;
+              
+              return (
+                <tr key={q.questionId} className="border-b hover:bg-gray-50">
+                  <td className="p-3 text-sm font-mono">{q.questionId}</td>
+                  <td className="p-3 text-sm">{q.chapter}</td>
+                  <td className="p-3 text-center text-sm">{q.totalAttempts}</td>
+                  <td className="p-3 text-center">
+                    <span className={`px-2 py-1 rounded font-bold text-sm ${
+                      q.percentCorrect >= 70 ? 'bg-green-100 text-green-700' :
+                      q.percentCorrect >= 50 ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-red-100 text-red-700'
+                    }`}>
+                      {q.percentCorrect}%
+                    </span>
+                  </td>
+                  <td className="p-3 text-center text-sm">{q.avgTimeSpent}s</td>
+                  <td className="p-3 text-center text-sm">
+                    {rationaleAcc !== null ? `${rationaleAcc}%` : 'N/A'}
+                  </td>
+                  <td className="p-3 text-center">
+                    <span className={`px-2 py-1 rounded text-xs font-bold ${
+                      q.flag === 'Good' ? 'bg-blue-100 text-blue-700' :
+                      q.flag === 'Too Easy' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-red-100 text-red-700'
+                    }`}>
+                      {q.flag}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      
+      <div className="mt-6 p-4 bg-blue-50 rounded-xl">
+        <h4 className="font-bold text-blue-900 mb-2">Recommendations:</h4>
+        <ul className="text-sm text-blue-800 space-y-1">
+          <li>• <strong>Too Easy ({'>'}90%):</strong> Consider adding distractors or increasing complexity</li>
+          <li>• <strong>Too Hard ({'<'}40%):</strong> Review question clarity and review concept with students</li>
+          <li>• <strong>Good (40-90%):</strong> These questions effectively assess understanding</li>
+          <li>• <strong>Low Rationale Accuracy:</strong> Question may have confusing reasoning options</li>
+        </ul>
+      </div>
     </div>
   );
 };

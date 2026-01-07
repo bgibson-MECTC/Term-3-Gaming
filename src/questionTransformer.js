@@ -394,8 +394,8 @@ function generateCorrectRationale(question) {
   const { concept, skill, bloom, rationale } = question;
   
   // Extract key reasoning from original rationale
-  if (rationale) {
-    const sentences = rationale.split('.');
+  if (rationale && rationale.trim()) {
+    const sentences = rationale.split('.').map(s => s.trim()).filter(s => s.length > 0);
     if (sentences.length > 0) {
       return sentences[0] + '.'; // First sentence is usually the key point
     }
@@ -403,14 +403,18 @@ function generateCorrectRationale(question) {
   
   // Generate based on metadata
   if (skill?.includes('PRIORITY')) {
-    return `This addresses the most critical need based on ${concept || 'nursing priorities'}`;
+    return `This addresses the most critical need based on ${concept || 'nursing priorities'}.`;
   }
   
-  if (bloom === 'Analyze') {
-    return `This option requires analyzing the situation and applying clinical judgment`;
+  if (bloom === 'APPLICATION' || bloom === 'CLINICAL_JUDGMENT') {
+    return `This option requires analyzing the situation and applying clinical judgment based on ${concept || 'the scenario'}.`;
   }
   
-  return `This is the correct action based on evidence-based practice`;
+  if (concept) {
+    return `This is the correct action based on evidence-based practice for ${concept}.`;
+  }
+  
+  return `This option demonstrates proper clinical judgment and evidence-based practice.`;
 }
 
 /**
@@ -421,19 +425,19 @@ function generateWeakRationale(question) {
   const { concept, skill, rationale } = question;
   
   // Extract a supporting detail rather than the main point
-  if (rationale) {
-    const sentences = rationale.split('.');
+  if (rationale && rationale.trim()) {
+    const sentences = rationale.split('.').map(s => s.trim()).filter(s => s.length > 0);
     if (sentences.length > 1) {
-      return sentences[1]?.trim() + '.'; // Second sentence is usually supporting detail
+      return sentences[1] + '.'; // Second sentence is usually supporting detail
     }
   }
   
   // Generate generic weak reasoning
   const weakReasons = [
-    `This option is mentioned in the textbook about ${concept || 'this topic'}`,
-    `This is commonly recommended for ${concept || 'this condition'}`,
-    `This intervention is part of standard nursing care`,
-    `This action appears in the care guidelines`,
+    `This option is mentioned in the textbook about ${concept || 'this topic'}.`,
+    `This is commonly recommended for ${concept || 'this condition'}.`,
+    `This intervention is part of standard nursing care.`,
+    `This action appears in the care guidelines.`,
   ];
   
   return weakReasons[Math.floor(Math.random() * weakReasons.length)];

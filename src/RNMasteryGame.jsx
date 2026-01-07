@@ -1187,6 +1187,12 @@ export default function RNMasteryGame() {
   const [recentAnswerIndices, setRecentAnswerIndices] = useState([]);
   const [lastRationaleTier, setLastRationaleTier] = useState(null);
   
+  // Clinical Reasoning Score tracking (Ranked Mode only)
+  const [rationaleCorrectCount, setRationaleCorrectCount] = useState(0);
+  const [rationaleWeakCount, setRationaleWeakCount] = useState(0);
+  const [totalTimeSpentAll, setTotalTimeSpentAll] = useState(0);
+  const [timeConsistencyScore, setTimeConsistencyScore] = useState(100);
+  
   // Instructor Mode
   const [showInstructorMode, setShowInstructorMode] = useState(false);
   const [customChapters, setCustomChapters] = useState([]);
@@ -1197,6 +1203,26 @@ export default function RNMasteryGame() {
     const saved = localStorage.getItem('rnMasteryWeakness');
     return saved ? JSON.parse(saved) : { missedBySkill: {}, missedByConcept: {}, missedByBloom: {} };
   });
+  
+  // Remediation Engine
+  const [conceptMissCount, setConceptMissCount] = useState(() => {
+    const saved = localStorage.getItem('rnMasteryConceptMissCount');
+    return saved ? JSON.parse(saved) : {};
+  });
+  const [needsRemediation, setNeedsRemediation] = useState([]);
+  const [remediationMode, setRemediationMode] = useState(false);
+  const [remediationConcept, setRemediationConcept] = useState(null);
+  const [remediationCompleted, setRemediationCompleted] = useState(() => {
+    const saved = localStorage.getItem('rnMasteryRemediationCompleted');
+    return saved ? JSON.parse(saved) : {};
+  });
+  
+  // Anti-Memorization Guardrails
+  const [questionAttemptHistory, setQuestionAttemptHistory] = useState(() => {
+    const saved = localStorage.getItem('rnMasteryQuestionHistory');
+    return saved ? JSON.parse(saved) : {};
+  });
+  const [rushAnswerWarnings, setRushAnswerWarnings] = useState(0);
   
   const [analytics, setAnalytics] = useState(() => {
     const saved = localStorage.getItem('rnMasteryAnalytics');
@@ -1267,6 +1293,7 @@ export default function RNMasteryGame() {
       setTimeLeft(prev => {
         if (prev <= 1) {
           // Time's up - auto submit with current answer or null
+          clearInterval(timer); // Stop timer immediately
           handleAnswer(selectedOption, 'TIMEOUT');
           return 0;
         }
@@ -1276,7 +1303,7 @@ export default function RNMasteryGame() {
     }, 1000);
     
     return () => clearInterval(timer);
-  }, [gameMode, gameState, showRationale, currentQuestionIndex, selectedOption]);
+  }, [gameMode, gameState, showRationale, currentQuestionIndex]);
 
   // --- FIREBASE AUTH & DATA LOADING ---
   useEffect(() => {
@@ -1352,9 +1379,91 @@ export default function RNMasteryGame() {
     return studyModeScores[chapterId]?.percentage || 0;
   };
 
+  // --- CLINICAL REASONING SCORE CALCULATION ---
+  const calculateClinicalReasoningScore = () => {
+    if (gameMode !== 'ranked' || questions.length === 0) return null;
+    
+    // Component 1: Accuracy (40%)
+    const accuracyScore = Math.round((correctCount / questions.length) * 40);
+    
+    // Component 2: Rationale Accuracy (40%)
+    const totalRationaleAttempts = rationaleCorrectCount + rationaleWeakCount + (incorrectCount);
+    const rationaleScore = totalRationaleAttempts > 0
+      ? Math.round(((rationaleCorrectCount * 1.0 + rationaleWeakCount * 0.5) / totalRationaleAttempts) * 40)
+      : 0;
+    
+    // Component 3: Time & Consistency (20%)
+    const avgTime = totalTimeSpentAll / questions.length;
+    let timeScore = 20;
+    
+    // Penalty for rushing (< 5 sec avg) or being too slow (> 25 sec avg)
+    if (avgTime < 5) {
+      timeScore = Math.round(20 * 0.5); // 50% penalty for rushing
+    } else if (avgTime > 25) {
+      timeScore = Math.round(20 * 0.7); // 30% penalty for slowness
+    } else if (avgTime >= 10 && avgTime <= 20) {
+      timeScore = 20; // Optimal range
+    } else {
+      timeScore = Math.round(20 * 0.85); // Slight penalty
+    }
+    
+    const totalCRS = accuracyScore + rationaleScore + timeScore;
+    
+    return {
+      total: totalCRS,
+      accuracy: accuracyScore,
+      rationale: rationaleScore,
+      time: timeScore,
+      avgTime: Math.round(avgTime)
+    };
+  };
+
+  // --- ANTI-MEMORIZATION FUNCTIONS ---
+  const checkRecentAttempt = (questionId) => {
+    const history = questionAttemptHistory[questionId];
+    if (!history || !history.lastAttempt) return { isRecent: false };
+    
+    const lastAttempt = new Date(history.lastAttempt);
+    const hoursSince = (Date.now() - lastAttempt.getTime()) / (1000 * 60 * 60);
+    
+    return {
+      isRecent: hoursSince < 24,
+      hoursSince: Math.round(hoursSince),
+      attemptCount: history.attemptCount || 0
+    };
+  };
+  
+  const recordQuestionAttempt = (questionId, timeSpent, wasCorrect) => {
+    const newHistory = { ...questionAttemptHistory };
+    
+    if (!newHistory[questionId]) {
+      newHistory[questionId] = {
+        attemptCount: 0,
+        lastAttempt: null,
+        averageTime: 0,
+        correctCount: 0
+      };
+    }
+    
+    const qHistory = newHistory[questionId];
+    qHistory.attemptCount++;
+    qHistory.lastAttempt = new Date().toISOString();
+    qHistory.averageTime = ((qHistory.averageTime * (qHistory.attemptCount - 1)) + timeSpent) / qHistory.attemptCount;
+    if (wasCorrect) qHistory.correctCount++;
+    
+    setQuestionAttemptHistory(newHistory);
+    localStorage.setItem('rnMasteryQuestionHistory', JSON.stringify(newHistory));
+  };
+
   // --- GAME LOGIC ---
   const startChapter = (chapter, mode = MODES.CHAPTER_REVIEW) => {
     const chapterId = chapter.id || chapter.chapterId;
+    
+    // Check for pending remediation (blocks Rank Mode)
+    if (gameMode === 'ranked' && needsRemediation.length > 0) {
+      alert(`⚠️ Remediation Required\n\nYou must complete remediation for these concepts before accessing Rank Mode:\n\n${needsRemediation.map(c => `• ${c}`).join('\n')}\n\nClick the "📚 Remediation" button to strengthen your understanding.`);
+      return;
+    }
     
     // Check Rank Mode access
     if (gameMode === 'ranked' && !isRankModeUnlocked(chapterId)) {
@@ -1383,6 +1492,19 @@ export default function RNMasteryGame() {
       // Fall back to all questions if no higher-order questions found
       chapterQuestions = filteredQuestions.length >= 5 ? filteredQuestions : chapterQuestions;
       
+      // Anti-Memorization: Filter out questions attempted in last 24h
+      const availableQuestions = chapterQuestions.filter(q => {
+        const check = checkRecentAttempt(q.id);
+        return !check.isRecent || check.attemptCount < 3; // Allow up to 3 attempts or if >24h old
+      });
+      
+      if (availableQuestions.length < 5) {
+        alert(`⚠️ Anti-Memorization Protection\n\nYou've recently attempted most questions in this chapter.\n\nWait 24 hours or try a different chapter to ensure valid assessment.`);
+        return;
+      }
+      
+      chapterQuestions = availableQuestions;
+      
       // Transform questions for clinical scenarios
       chapterQuestions = chapterQuestions.map(q => transformToRankedQuestion(q));
     }
@@ -1396,6 +1518,16 @@ export default function RNMasteryGame() {
     setIncorrectCount(0);
     setMissedQuestions([]);
     setRecentAnswerIndices([]);
+    
+    // Reset clinical reasoning tracking
+    if (gameMode === 'ranked') {
+      setRationaleCorrectCount(0);
+      setRationaleWeakCount(0);
+      setTotalTimeSpentAll(0);
+      setTimeConsistencyScore(100);
+      setRushAnswerWarnings(0); // Reset rush warnings
+    }
+    
     setGameState('playing');
     resetTurn();
     
@@ -1424,6 +1556,37 @@ export default function RNMasteryGame() {
     setHiddenOptions([]);
   };
 
+  const startRemediation = (concept) => {
+    // Gather all questions across all chapters that match this concept
+    const allQuestions = [...INITIAL_DATA, ...customChapters]
+      .flatMap(chapter => enrichQuestions(chapter.questions || []))
+      .filter(q => q.concept === concept);
+    
+    if (allQuestions.length === 0) {
+      alert(`No questions found for concept: ${concept}`);
+      return;
+    }
+    
+    // Select 3-5 questions randomly for remediation
+    const numQuestions = Math.min(5, Math.max(3, allQuestions.length));
+    const shuffled = allQuestions.sort(() => Math.random() - 0.5);
+    const remediationQuestions = shuffled.slice(0, numQuestions);
+    
+    setRemediationMode(true);
+    setRemediationConcept(concept);
+    setQuestions(remediationQuestions);
+    setCurrentQuestionIndex(0);
+    setScore(0);
+    setStreak(0);
+    setCorrectCount(0);
+    setIncorrectCount(0);
+    setMissedQuestions([]);
+    setGameState('playing');
+    resetTurn();
+    
+    alert(`📚 Remediation: ${concept}\n\nYou'll answer ${numQuestions} questions to strengthen this concept.\n\nScore 80% or higher to complete remediation and unlock Rank Mode.`);
+  };
+
   const useFiftyFifty = () => {
     if (fiftyFiftyUsed || showRationale) return;
     const q = questions[currentQuestionIndex];
@@ -1438,13 +1601,27 @@ export default function RNMasteryGame() {
     setConfidence(confLevel);
     
     // In Ranked Mode with rationale requirement, show rationale selection first
-    if (gameMode === 'ranked' && questions[currentQuestionIndex].requiresRationale && !showRationaleSelection) {
+    // UNLESS it's a timeout - in that case, process the answer immediately
+    if (confLevel !== 'TIMEOUT' && gameMode === 'ranked' && questions[currentQuestionIndex].requiresRationale && !showRationaleSelection) {
       setShowRationaleSelection(true);
       return; // Don't process answer yet
     }
     
     const q = questions[currentQuestionIndex];
-    const isCorrect = optionIndex === q.correctIndex;
+    // If optionIndex is null (no answer selected), mark as incorrect
+    const isCorrect = optionIndex !== null && optionIndex === q.correctIndex;
+    
+    // Anti-Memorization: Check for rush answers in Ranked Mode
+    let isRushAnswer = false;
+    if (gameMode === 'ranked' && timeSpent < 3) {
+      isRushAnswer = true;
+      setRushAnswerWarnings(rushAnswerWarnings + 1);
+    }
+    
+    // Record question attempt for anti-memorization tracking
+    if (gameMode === 'ranked') {
+      recordQuestionAttempt(q.id, timeSpent, isCorrect);
+    }
     
     // Track answer pattern for ranked mode
     if (gameMode === 'ranked') {
@@ -1463,7 +1640,60 @@ export default function RNMasteryGame() {
     let rationaleScore = null;
     let rationaleTier = null;
     
-    if (isCorrect) {
+    // TIMEOUT: No points awarded, break streak, mark as incorrect
+    if (confLevel === 'TIMEOUT') {
+      setIncorrectCount(incorrectCount + 1);
+      setStreak(0);
+      
+      // Track missed question
+      setMissedQuestions([...missedQuestions, {
+        question: q,
+        selectedAnswer: optionIndex,
+        questionNumber: currentQuestionIndex + 1,
+        timeSpent: gameMode === 'ranked' ? timeSpent : null,
+        selectedRationale: null,
+        reason: 'timeout'
+      }]);
+      
+      // Update weakness stats for timeout
+      if (q.skill || q.concept) {
+        const newWeakness = { ...weaknessStats };
+        const newConceptMissCount = { ...conceptMissCount };
+        
+        if (Array.isArray(q.skill)) {
+          q.skill.forEach(skill => {
+            newWeakness.missedBySkill = newWeakness.missedBySkill || {};
+            newWeakness.missedBySkill[skill] = (newWeakness.missedBySkill[skill] || 0) + 1;
+          });
+        }
+        
+        if (q.concept) {
+          newWeakness.missedByConcept = newWeakness.missedByConcept || {};
+          newWeakness.missedByConcept[q.concept] = (newWeakness.missedByConcept[q.concept] || 0) + 1;
+          
+          newConceptMissCount[q.concept] = (newConceptMissCount[q.concept] || 0) + 1;
+          
+          if (newConceptMissCount[q.concept] >= 2 && !remediationCompleted[q.concept]) {
+            if (!needsRemediation.includes(q.concept)) {
+              setNeedsRemediation([...needsRemediation, q.concept]);
+            }
+          }
+          
+          setConceptMissCount(newConceptMissCount);
+          localStorage.setItem('rnMasteryConceptMissCount', JSON.stringify(newConceptMissCount));
+        }
+        
+        if (q.bloom) {
+          newWeakness.missedByBloom = newWeakness.missedByBloom || {};
+          newWeakness.missedByBloom[q.bloom] = (newWeakness.missedByBloom[q.bloom] || 0) + 1;
+        }
+        
+        setWeaknessStats(newWeakness);
+        localStorage.setItem('rnMasteryWeakness', JSON.stringify(newWeakness));
+      }
+      
+      points = 0; // Explicitly set to 0 for timeout
+    } else if (isCorrect) {
       setCorrectCount(correctCount + 1);
       
       if (gameMode === 'ranked') {
@@ -1472,6 +1702,17 @@ export default function RNMasteryGame() {
           const rationaleResult = scoreRationale(selectedRationale, q.correctRationaleIndex || 0);
           rationaleScore = rationaleResult.score;
           rationaleTier = rationaleResult.tier;
+          setLastRationaleTier(rationaleTier); // Save to state for display
+          
+          // Track rationale performance for Clinical Reasoning Score
+          if (rationaleTier === 'correct') {
+            setRationaleCorrectCount(rationaleCorrectCount + 1);
+          } else if (rationaleTier === 'weak') {
+            setRationaleWeakCount(rationaleWeakCount + 1);
+          }
+          
+          // Track time for consistency scoring
+          setTotalTimeSpentAll(totalTimeSpentAll + timeSpent);
           
           // ZERO POINTS for correct answer with incorrect rationale
           if (rationaleTier === 'incorrect') {
@@ -1494,6 +1735,11 @@ export default function RNMasteryGame() {
               points = Math.round(points * 0.5); // 50% of points for weak rationale
             }
             // Full points for correct rationale (no adjustment)
+            
+            // Rush answer penalty (additional to time multiplier)
+            if (isRushAnswer && timeSpent < 3) {
+              points = Math.round(points * 0.3); // Severe 70% penalty for rush answers
+            }
             
             // Pattern penalty
             if (detectAnswerPattern(recentAnswerIndices)) {
@@ -1523,9 +1769,10 @@ export default function RNMasteryGame() {
         selectedRationale: gameMode === 'ranked' ? selectedRationale : null,
       }]);
       
-      // Update weakness stats
+      // Update weakness stats and track for remediation
       if (q.skill || q.concept) {
         const newWeakness = { ...weaknessStats };
+        const newConceptMissCount = { ...conceptMissCount };
         
         if (Array.isArray(q.skill)) {
           q.skill.forEach(skill => {
@@ -1534,9 +1781,23 @@ export default function RNMasteryGame() {
           });
         }
         
+        // Track concept misses for remediation engine
         if (q.concept) {
           newWeakness.missedByConcept = newWeakness.missedByConcept || {};
           newWeakness.missedByConcept[q.concept] = (newWeakness.missedByConcept[q.concept] || 0) + 1;
+          
+          // Increment concept miss count
+          newConceptMissCount[q.concept] = (newConceptMissCount[q.concept] || 0) + 1;
+          
+          // Trigger remediation if missed 2+ times and not already completed remediation
+          if (newConceptMissCount[q.concept] >= 2 && !remediationCompleted[q.concept]) {
+            if (!needsRemediation.includes(q.concept)) {
+              setNeedsRemediation([...needsRemediation, q.concept]);
+            }
+          }
+          
+          setConceptMissCount(newConceptMissCount);
+          localStorage.setItem('rnMasteryConceptMissCount', JSON.stringify(newConceptMissCount));
         }
         
         if (q.bloom) {
@@ -1613,6 +1874,28 @@ export default function RNMasteryGame() {
     } else {
       // End of quiz - trigger confetti for good scores
       const percentage = Math.round((correctCount / questions.length) * 100);
+      
+      // Handle Remediation Mode completion
+      if (remediationMode && remediationConcept) {
+        if (percentage >= 80) {
+          // Mark remediation as completed
+          const newCompleted = { ...remediationCompleted, [remediationConcept]: true };
+          setRemediationCompleted(newCompleted);
+          localStorage.setItem('rnMasteryRemediationCompleted', JSON.stringify(newCompleted));
+          
+          // Remove from needs remediation list
+          setNeedsRemediation(needsRemediation.filter(c => c !== remediationConcept));
+          
+          alert(`✅ Remediation Complete!\n\nYou scored ${percentage}% on ${remediationConcept}.\n\n${needsRemediation.length > 1 ? 'Complete remaining remediation tasks to unlock Rank Mode.' : 'You can now access Rank Mode!'}`);
+        } else {
+          alert(`📚 Keep Practicing\n\nYou scored ${percentage}% on ${remediationConcept} remediation.\n\nYou need 80% to complete remediation. Review the material and try again!`);
+        }
+        
+        setRemediationMode(false);
+        setRemediationConcept(null);
+        setGameState('menu');
+        return;
+      }
       
       // Save Study Mode scores for Rank Mode unlocking
       if (gameMode === 'study' && activeChapter) {
@@ -1784,21 +2067,34 @@ Rationale: ${missed.question.rationale}
 
     setIsSubmittingScore(true);
     try {
+      const clinicalReasoningScore = calculateClinicalReasoningScore();
+      
       console.log('Saving score to leaderboard:', {
         playerName: playerName.trim(),
         score,
         chapterTitle: activeChapter.title,
-        uid: user.uid
+        uid: user.uid,
+        clinicalReasoningScore: clinicalReasoningScore?.total
       });
       
-      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'scores'), {
+      const scoreData = {
         playerName: playerName.trim(),
         score: score,
         chapterTitle: activeChapter.title,
         rank: getRank(score),
         timestamp: serverTimestamp(),
         uid: user.uid
-      });
+      };
+      
+      // Add Clinical Reasoning Score for ranked mode
+      if (gameMode === 'ranked' && clinicalReasoningScore) {
+        scoreData.clinicalReasoningScore = clinicalReasoningScore.total;
+        scoreData.crsAccuracy = clinicalReasoningScore.accuracy;
+        scoreData.crsRationale = clinicalReasoningScore.rationale;
+        scoreData.crsTime = clinicalReasoningScore.time;
+      }
+      
+      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'scores'), scoreData);
       
       console.log('Score saved successfully!');
       setSubmittedChapters([...submittedChapters, activeChapter.title]);
@@ -1854,6 +2150,36 @@ Rationale: ${missed.question.rationale}
             </p>
           )}
         </header>
+
+        {/* Remediation Alert */}
+        {needsRemediation.length > 0 && gameMode === 'ranked' && (
+          <div className="mb-6 p-5 bg-gradient-to-r from-red-900/30 to-orange-900/30 border-2 border-red-500/50 rounded-2xl">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                <AlertCircle className="w-6 h-6 text-red-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-red-300 mb-2">⚠️ Remediation Required</h3>
+                <p className="text-red-200 text-sm mb-3">
+                  You've missed these concepts multiple times. Complete remediation to unlock Rank Mode:
+                </p>
+                <div className="space-y-2">
+                  {needsRemediation.map(concept => (
+                    <div key={concept} className="flex items-center justify-between bg-slate-900/50 p-3 rounded-lg">
+                      <span className="text-white font-semibold">{concept}</span>
+                      <button
+                        onClick={() => startRemediation(concept)}
+                        className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-bold text-sm transition-colors flex items-center gap-2"
+                      >
+                        📚 Start Remediation
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Chapter Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1949,12 +2275,17 @@ Rationale: ${missed.question.rationale}
             >
               Exit
             </button>
-            {q.concept && (
+            {remediationMode && (
+              <div className="px-3 py-1 rounded-full bg-orange-500/20 border border-orange-500 text-xs font-bold text-orange-300 flex items-center gap-2">
+                📚 Remediation: {remediationConcept}
+              </div>
+            )}
+            {q.concept && !remediationMode && (
               <div className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300">
                 {q.concept.replace(/_/g, ' ')}
               </div>
             )}
-            {gameMode === 'ranked' && (
+            {gameMode === 'ranked' && !remediationMode && (
               <div className={`px-3 py-1 rounded-full border text-xs font-bold ${
                 timeLeft <= 10 ? 'bg-red-500/20 border-red-500 text-red-400 animate-pulse' :
                 timeLeft <= 20 ? 'bg-yellow-500/20 border-yellow-500 text-yellow-400' :
@@ -2029,7 +2360,7 @@ Rationale: ${missed.question.rationale}
           {!showRationale ? (
             <>
               {/* Rationale Selection for Ranked Mode */}
-              {showRationaleSelection && gameMode === 'ranked' && q.rationaleOptions && (
+              {showRationaleSelection && gameMode === 'ranked' && q.rationaleOptions && q.rationaleOptions.length > 0 && (
                 <div className="mb-6 p-6 bg-purple-900/20 border border-purple-500/30 rounded-xl">
                   <h3 className="text-lg font-bold text-purple-300 mb-4">Select Your Reasoning:</h3>
                   <div className="grid gap-2">
@@ -2103,16 +2434,26 @@ Rationale: ${missed.question.rationale}
                   <h3 className={`text-lg font-bold mb-1 ${
                     selectedOption === q.correctIndex ? 'text-green-400' : 'text-red-400'
                   }`}>
-                    {selectedOption === q.correctIndex ? "Correct!" : "Incorrect"}
+                    {selectedOption === q.correctIndex ? "Correct!" : selectedOption === null ? "Time's Up!" : "Incorrect"}
                   </h3>
                   
+                  {/* Timeout message for Ranked Mode */}
+                  {gameMode === 'ranked' && confidence === 'TIMEOUT' && (
+                    <div className="mb-3">
+                      <div className="flex items-center gap-2 text-orange-400 text-sm bg-orange-500/10 border border-orange-500/30 rounded-lg p-3">
+                        <Timer className="w-4 h-4" />
+                        <span className="font-semibold">⏱️ Time expired - No points awarded. Try to answer faster next time!</span>
+                      </div>
+                    </div>
+                  )}
+                  
                   {/* Time-based performance feedback for Ranked Mode */}
-                  {gameMode === 'ranked' && selectedOption === q.correctIndex && (
+                  {gameMode === 'ranked' && selectedOption === q.correctIndex && confidence !== 'TIMEOUT' && (
                     <div className="mb-3">
                       {timeSpent < 3 ? (
-                        <div className="flex items-center gap-2 text-yellow-400 text-sm">
+                        <div className="flex items-center gap-2 text-red-400 text-sm bg-red-500/10 border border-red-500/30 rounded-lg p-3">
                           <AlertCircle className="w-4 h-4" />
-                          <span className="font-semibold">Too fast! ({timeSpent}s) - Score penalty applied for rushed answer</span>
+                          <span className="font-semibold">⚠️ RUSH ANSWER! ({timeSpent}s) - Severe 70% penalty applied. Read carefully!</span>
                         </div>
                       ) : timeSpent <= 15 ? (
                         <div className="flex items-center gap-2 text-green-400 text-sm">
@@ -2245,6 +2586,7 @@ Rationale: ${missed.question.rationale}
   const SummaryScreen = () => {
     const accuracy = Math.round((correctCount / questions.length) * 100);
     const alreadySubmitted = submittedChapters.includes(activeChapter.title);
+    const clinicalReasoningScore = calculateClinicalReasoningScore();
 
     return (
       <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-6 font-sans">
@@ -2257,7 +2599,7 @@ Rationale: ${missed.question.rationale}
           <div className="text-slate-400 mb-8 font-bold">{activeChapter.title}</div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 gap-4 mb-8">
+          <div className={`grid ${gameMode === 'ranked' ? 'grid-cols-3' : 'grid-cols-2'} gap-4 mb-8`}>
             <div className="p-4 bg-slate-900 rounded-2xl border border-slate-700">
               <div className="text-4xl font-black text-white">{score}</div>
               <div className="text-xs font-bold text-slate-500 uppercase mt-1">Score</div>
@@ -2270,7 +2612,63 @@ Rationale: ${missed.question.rationale}
               </div>
               <div className="text-xs font-bold text-slate-500 uppercase mt-1">Accuracy</div>
             </div>
+            
+            {/* Clinical Reasoning Score (Ranked Mode Only) */}
+            {gameMode === 'ranked' && clinicalReasoningScore && (
+              <div className="p-4 bg-gradient-to-br from-purple-900/30 to-blue-900/30 rounded-2xl border-2 border-purple-500/50">
+                <div className={`text-4xl font-black ${
+                  clinicalReasoningScore.total >= 80 ? 'text-purple-300' : 
+                  clinicalReasoningScore.total >= 70 ? 'text-blue-300' : 'text-slate-300'
+                }`}>
+                  {clinicalReasoningScore.total}
+                </div>
+                <div className="text-xs font-bold text-purple-400 uppercase mt-1">CRS</div>
+              </div>
+            )}
           </div>
+          
+          {/* Clinical Reasoning Score Breakdown (Ranked Mode Only) */}
+          {gameMode === 'ranked' && clinicalReasoningScore && (
+            <div className="mb-6 p-4 bg-purple-900/10 border border-purple-500/30 rounded-xl">
+              <div className="text-sm font-bold text-purple-300 mb-3 flex items-center justify-center gap-2">
+                <Brain className="w-4 h-4" />
+                Clinical Reasoning Score Breakdown
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="p-2 bg-slate-900/50 rounded-lg">
+                  <div className="font-bold text-green-400">{clinicalReasoningScore.accuracy}/40</div>
+                  <div className="text-slate-400">Accuracy</div>
+                </div>
+                <div className="p-2 bg-slate-900/50 rounded-lg">
+                  <div className="font-bold text-blue-400">{clinicalReasoningScore.rationale}/40</div>
+                  <div className="text-slate-400">Reasoning</div>
+                </div>
+                <div className="p-2 bg-slate-900/50 rounded-lg">
+                  <div className="font-bold text-purple-400">{clinicalReasoningScore.time}/20</div>
+                  <div className="text-slate-400">Timing</div>
+                </div>
+              </div>
+              <div className="text-xs text-slate-400 mt-2">
+                Avg time: {clinicalReasoningScore.avgTime}s/question
+              </div>
+            </div>
+          )}
+
+          {/* Rush Answer Warning */}
+          {gameMode === 'ranked' && rushAnswerWarnings >= 3 && (
+            <div className="mb-6 p-4 bg-red-900/20 border border-red-500/50 rounded-xl">
+              <div className="flex items-center gap-3 text-red-300">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                <div className="text-sm">
+                  <div className="font-bold mb-1">⚠️ Anti-Memorization Alert</div>
+                  <div className="text-red-200">
+                    You rushed through {rushAnswerWarnings} questions ({'<'}3s each). 
+                    Slow down and read carefully to demonstrate true understanding.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* AI Study Guide */}
           <div className="mb-6">

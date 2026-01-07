@@ -55,6 +55,8 @@ const Leaderboard = ({
         <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
           {filteredScores.map((entry, idx) => {
             const isCurrentUser = user && entry.uid === user.uid;
+            const hasCRS = entry.clinicalReasoningScore !== undefined;
+            
             return (
               <div key={entry.id} className={`flex items-center p-4 rounded-xl border transition ${isCurrentUser ? 'bg-cyan-500/20 border-cyan-500/50' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}>
                 <div className="w-10 font-black text-2xl text-slate-500 italic">#{idx + 1}</div>
@@ -64,7 +66,14 @@ const Leaderboard = ({
                   </div>
                   <div className="text-xs text-slate-400">{entry.chapterTitle}</div>
                 </div>
-                <div className="font-mono text-xl text-cyan-400 font-bold">{entry.score}</div>
+                <div className="text-right">
+                  <div className="font-mono text-xl text-cyan-400 font-bold">{entry.score}</div>
+                  {hasCRS && (
+                    <div className="text-xs text-purple-400 font-bold mt-1">
+                      CRS: {entry.clinicalReasoningScore}
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
