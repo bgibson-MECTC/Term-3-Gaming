@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, AlertCircle, Target, Beaker, ListOrdered, Lock, RotateCcw, Crown } from 'lucide-react';
+import { Shield, AlertCircle, Target, Beaker, ListOrdered, Lock, RotateCcw, Crown, Scale } from 'lucide-react';
 import { MODES, MODE_INFO } from '../modes';
 
 const MODE_ICONS = {
@@ -11,6 +11,7 @@ const MODE_ICONS = {
   [MODES.BARRIER_BOOTCAMP]: Lock,
   [MODES.MISSED_REMATCH]: RotateCcw,
   [MODES.BOSS_FIGHT]: Crown,
+  [MODES.LEAST_DANGEROUS]: Scale,
 };
 
 export default function ModeSelector({ chapters, onSelectMode, onBack, analytics }) {
@@ -22,6 +23,7 @@ export default function ModeSelector({ chapters, onSelectMode, onBack, analytics
     MODES.SEQUENCING,
     MODES.BARRIER_BOOTCAMP,
     MODES.BOSS_FIGHT,
+    MODES.LEAST_DANGEROUS,
   ];
 
   const specialModes = [MODES.MISSED_REMATCH];

@@ -10,6 +10,7 @@ export const MODES = {
   BARRIER_BOOTCAMP: "BARRIER_BOOTCAMP",
   MISSED_REMATCH: "MISSED_REMATCH",
   BOSS_FIGHT: "BOSS_FIGHT",
+  LEAST_DANGEROUS: "LEAST_DANGEROUS",
 };
 
 // Mode Metadata for UI
@@ -61,6 +62,12 @@ export const MODE_INFO = {
     description: "10 curated hard-hitters across all skills",
     icon: "👑",
     color: "from-purple-600 to-indigo-600",
+  },
+  [MODES.LEAST_DANGEROUS]: {
+    title: "Least Dangerous",
+    description: "🔥🔥🔥🔥🔥 Every answer is wrong - pick the least dangerous risk",
+    icon: "⚖️",
+    color: "from-red-600 via-orange-600 to-yellow-500",
   },
 };
 
@@ -123,6 +130,9 @@ export function getPool(allQuestions, mode, options = {}) {
 
     case MODES.BOSS_FIGHT:
       return buildBossFightPool(pool);
+
+    case MODES.LEAST_DANGEROUS:
+      return pool.filter(q => hasSkill(q, "CLINICAL_JUDGMENT"));
 
     case MODES.CHAPTER_REVIEW:
     default:

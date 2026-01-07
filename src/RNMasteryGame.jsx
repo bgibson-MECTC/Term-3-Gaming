@@ -12,6 +12,7 @@ import { enrichQuestions, getExamTip } from './questionTags/index';
 import { MODES, getPool } from './modes';
 import InstructorMode from './components/InstructorMode';
 import { transformToRankedQuestion, scoreRationale, calculateTimeMultiplier, detectAnswerPattern } from './questionTransformer';
+import { getClinicalJudgmentQuestions } from './clinicalJudgmentScenarios';
 
 // Log Firebase status
 console.log('Firebase initialized:', { db: !!db, auth: !!auth });
@@ -1149,6 +1150,14 @@ const INITIAL_DATA = [
         rationale: "Neutrophils are first responders to bacterial infections."
       }
     ]
+  },
+  // CLINICAL JUDGMENT MODULE - "Least Dangerous" Mode
+  {
+    id: 'clinical-judgment',
+    title: '⚖️ Least Dangerous',
+    icon: <AlertCircle className="w-6 h-6" />,
+    description: '🔥🔥🔥🔥🔥 Every answer is wrong - pick the least dangerous risk',
+    questions: getClinicalJudgmentQuestions()
   }
 ];
 
