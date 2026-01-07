@@ -2424,7 +2424,9 @@ Rationale: ${missed.question.rationale}
                 {/* Study Mode Score & Rank Mode Status */}
                 {gameMode === 'ranked' && (
                   <div className="mt-2 text-xs">
-                    {rankModeUnlocked ? (
+                    {chapterId === 'day-to-be-wrong' ? (
+                      <span className="text-cyan-400 font-semibold">🔥 Always Available</span>
+                    ) : rankModeUnlocked ? (
                       <span className="text-green-400 font-semibold">✓ Unlocked ({studyScore}%)</span>
                     ) : (
                       <span className="text-yellow-400 font-semibold">🔒 Need 85% ({studyScore}%)</span>
