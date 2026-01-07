@@ -1,11 +1,13 @@
 /**
- * LEAST DANGEROUS MODE - Clinical Judgment Scenarios
+ * LEAST DANGEROUS MODE - Clinical Judgment Scenarios (HARD MODE)
  * 
- * THE RULES:
- * - There is no perfect answer in this activity
- * - Every option has risk
- * - You are graded on which risk you choose to accept
- * - You must justify why the other risks are worse
+ * HARD MODE RULES:
+ * ❌ 1. NO FULL INFORMATION - No complete vitals, labs, or diagnosis labels
+ * ❌ 2. EVERY ANSWER HAS A COST - Each choice delays, worsens, or closes other options
+ * ❌ 3. THE CORRECT ANSWER CHANGES - What was right 30 seconds ago may now be wrong
+ * ❌ 4. SILENCE RULE - Some rounds require immediate answers with no discussion
+ * 
+ * REQUIRED: You must justify what you're sacrificing, not just what you're doing
  * 
  * Difficulty: 🔥🔥🔥🔥🔥
  * Time: 45–60 minutes
@@ -19,28 +21,35 @@ export const CLINICAL_JUDGMENT_SCENARIOS = {
   icon: '⚖️',
   description: 'Every answer is wrong. Pick the least dangerous risk.',
   questions: [
-    // ROUND 1: MDRO MORAL INJURY
+    // ROUND 1: COMPETING PRIORITIES (HARD MODE - Incomplete Information)
     {
       id: "ld_q01_mdro_moral_injury",
-      text: "You are charge nurse. One negative-pressure room available. Three patients arrive simultaneously.",
-      scenario: `**Patient A:** Watery diarrhea ×6 hours • Recent clindamycin • No stool results yet
+      text: "🩸 COMPETING PRIORITIES: You are charge nurse. ONE negative-pressure room. THREE patients arrive. You must answer: (1) Where do you go FIRST? (2) What gets worse because of it?",
+      scenario: `**Patient A:** "Feeling off" • Recent antibiotic • Some GI symptoms
 
-**Patient B:** Ventilated ICU transfer • Fever 39°C • Prior CRE infection
+**Patient B:** ICU transfer • "Fever" • History of resistant infection
 
-**Patient C:** MRSA colonized • Large draining wound • Immunocompromised roommate assigned`,
+**Patient C:** Known colonization • Wound actively draining • Roommate with "low immunity"
+
+⚠️ NO FULL LABS • NO VITALS • NO DIAGNOSIS CONFIRMATION`,
       options: [
-        "Patient A - suspected C. diff needs negative pressure",
-        "Patient B - CRE has highest mortality risk",
-        "Patient C - MRSA drainage poses infection risk to immunocompromised roommate",
-        "Rotate them every 8 hours to share the resource equally"
+        "Patient A (CONSEQUENCE: Patient C's roommate gets exposed to MRSA drainage)",
+        "Patient B (CONSEQUENCE: Patient A spreads C. diff to 3+ patients in hallway)",
+        "Patient C (CONSEQUENCE: Patient B remains stable but protocols delayed)",
+        "Try to share the room (CONSEQUENCE: Cross-contamination + outbreak)"
       ],
       correctIndex: 2,
-      timeLimit: 60, // seconds
+      timeLimit: 45, // seconds - reduced for pressure
+      requiresConsequence: true, // HARD MODE: must name what they sacrifice
       consequences: {
-        0: "❌ **C. diff spreads!** Two more patients develop diarrhea. Negative pressure was wasted on contact precautions.",
-        1: "❌ **CRE patient stable.** But immunocompromised roommate now has MRSA infection from Patient C's wound drainage.",
-        2: "✅ **Least dangerous choice.** Immunocompromised patient protected. Though negative pressure isn't ideal for MRSA.",
-        3: "❌ **Unit outbreak!** Moving infected patients around increased transmission. Three staff members now exposed."
+        0: "⚠️ **You chose A.** C. diff contained BUT: Immunocompromised patient now colonized with MRSA. Cost: One infection prevented, one created.",
+        1: "⚠️ **You chose B.** CRE monitored BUT: C. diff now spreading. 3 patients in hallway exposed. Cost: Saved one, infected three.",
+        2: "✓ **Least dangerous.** Immunocompromised protected BUT: You delayed CRE protocols. Cost: Best choice still has consequences.",
+        3: "❌ **Unit disaster.** You tried to be fair. Cost: 2 cross-contaminated patients + 3 exposed staff + outbreak investigation."
+      },
+      costOfChoice: {
+        description: "EVERY ANSWER HAS A COST. The game will track what you sacrificed.",
+        trackSacrifices: true
       },
       rationale: `**Best choice: Patient C** (though still not ideal)
 
@@ -138,25 +147,32 @@ export const CLINICAL_JUDGMENT_SCENARIOS = {
       examTip: "Viral load and CD4 count tell different stories. CD4 < 200 = PCP risk, regardless of viral suppression."
     },
 
-    // ROUND 3: THE SATA FROM HELL
+    // ROUND 3: LEAST WRONG ANSWER (HARD MODE - Rank All 4 in Order of Urgency)
     {
-      id: "ld_q03_sata_prep",
-      text: "HIV patient starting PrEP (Pre-Exposure Prophylaxis). Which actions are REQUIRED before initiating PrEP? (Select ALL that apply - justify EACH)",
+      id: "ld_q03_ranking_priority",
+      text: "⏱️ LEAST WRONG: Needlestick 90min ago. All 4 actions below are correct. Which prevents the MOST irreversible harm FIRST? (Choose highest priority only)",
+      scenario: `**HIV+ Patient Post-Exposure:**
+- Needlestick injury 90 minutes ago
+- Source patient unknown status
+- Employee terrified, no PEP started
+- Window closing
+
+⚠️ CHOOSE ONE - SEQUENCE DETERMINES OUTCOME`,
       options: [
-        "HIV test",
-        "Hepatitis B screening",
-        "Renal function labs",
-        "CD4 count",
-        "Condom counseling",
-        "ART resistance testing"
+        "Start PEP immediately → window closing (CONSEQUENCE: Employee anxious without counseling first)",
+        "Obtain source patient labs → need data (CONSEQUENCE: PEP delayed 2+ hours, effectiveness drops)",
+        "Provide emotional support → employee panicking (CONSEQUENCE: PEP window closes while talking)",
+        "Complete incident documentation → required protocol (CONSEQUENCE: Time wasted, PEP effectiveness lost)"
       ],
-      correctIndex: [0, 1, 2, 4], // Multiple correct answers
-      isMultiSelect: true,
-      timeLimit: 90,
+      correctIndex: 0, // PEP is highest priority
+      timeLimit: 30, // HARD MODE: Less time to decide
+      hardMode: true,
+      costOfChoice: "You must name what gets sacrificed by choosing this action",
       consequences: {
-        correct: "✅ **Comprehensive screening complete.** PrEP initiated safely with all necessary precautions.",
-        partial: "⚠️ **Incomplete workup.** Missing critical labs puts patient at risk for complications.",
-        wrong: "❌ **Dangerous gaps!** Patient started PrEP without required screening. High risk for resistance or organ damage."
+        0: "✅ **PEP started within window.** COST: Employee still anxious but protected. Could have been gentler.",
+        1: "❌ **Labs ordered.** COST: PEP delayed 3 hours. Effectiveness dropped from 95% to 70%. Preventable risk.",
+        2: "❌ **Employee calmed.** COST: PEP delayed 2 hours talking. Now only 50% effective. Feelings > survival?",
+        3: "❌ **Documentation perfect.** COST: PEP started 4 hours late. Nearly useless now. Great paperwork, poor outcome."
       },
       rationale: `**Required actions: HIV test, Hepatitis B screening, Renal function labs, Condom counseling**
 
@@ -338,6 +354,82 @@ Students think "we need to know the source first" - NO. Start PEP while investig
       bloom: "EVALUATE",
       difficulty: 5,
       examTip: "Time-sensitive interventions can't wait for complete information. PEP now, investigate later."
+    },
+
+    // FINAL BOSS ROUND: DEFEND THE WRONG ANSWER (☠️ THIS IS WHERE IT GETS HARD)
+    {
+      id: "ld_q06_final_boss_defend_wrong",
+      text: "☠️ FINAL BOSS: Defend the WRONG answer. Patient with 'low immunity' exposed to draining wound. You chose NOT to isolate them. Defend your choice.",
+      scenario: `**What Happened:**
+- You were charge nurse
+- ONE isolation room available
+- Patient C (draining MRSA wound) needed room
+- Immunocompromised roommate was at risk
+- You chose DIFFERENTLY
+
+**NOW DEFEND IT:**
+
+Infection control is demanding an explanation. Your manager is standing here. The family is asking questions.
+
+⚠️ You must make a CLINICAL ARGUMENT for why NOT isolating was defensible, despite the obvious risk.`,
+      options: [
+        "Resource scarcity - other patients had higher mortality risk",
+        "MRSA colonization vs infection - contact precautions sufficient",
+        "Patient autonomy - roommate understood and accepted risk",
+        "Cost-benefit analysis - isolation causes psychological harm"
+      ],
+      correctIndex: 1, // MRSA colonization argument is most defensible
+      timeLimit: 90, // Longer - they need to think hard
+      hardMode: true,
+      finalBoss: true,
+      requiresDefense: true,
+      consequences: {
+        0: "⚠️ **Defensible but weak.** Admin accepts 'higher mortality' reasoning. But family is filing complaint about transparency.",
+        1: "✅ **Strongest defense.** MRSA colonization + proper contact precautions CAN be managed without isolation. Clinically sound.",
+        2: "❌ **Ethical violation.** 'Patient understood risk' doesn't protect YOU from negligence. Informed consent ≠ adequate precautions.",
+        3: "❌ **Admin rejects this.** Psychological harm doesn't override infection control. You're being reassigned pending investigation."
+      },
+      rationale: `**FINAL BOSS RULES: DEFEND THE WRONG ANSWER**
+
+This round tests whether you can:
+1. Recognize nuance in "wrong" decisions
+2. Construct clinical arguments under pressure
+3. Distinguish between wrong vs defensible
+
+**Why Option B (MRSA colonization) is most defensible:**
+
+- MRSA **colonization** ≠ active infection
+- Contact precautions (gloves/gown) ARE evidence-based for colonization
+- Isolation is for **airborne** or **droplet** spread
+- Draining wound can be managed with proper technique
+
+**Why the others fail:**
+
+**A (Resource scarcity):**
+- Legally risky - suggests you gambled with patient safety
+- Admin might accept but family won't
+- Opens you to malpractice claims
+
+**C (Patient autonomy):**
+- Informed consent doesn't absolve you of duty
+- Immunocompromised patient can't truly "consent" to preventable infection
+- This is ethically and legally indefensible
+
+**D (Psychological harm):**
+- Isolation has side effects BUT
+- Infection control > psychological comfort
+- This argument will get you reassigned
+
+**THE LESSON:**
+Even "wrong" answers have DEGREES of defensibility. The game forces you to think like a charge nurse under investigation.
+
+**NCLEX Teaching Point:**
+"There is no perfect answer, but some wrong answers are less wrong than others. Know which battles you can defend."`,
+      skill: ["CLINICAL_JUDGMENT", "INFECTION_CONTROL", "ETHICS", "LEADERSHIP"],
+      concept: "RESOURCE_ALLOCATION",
+      bloom: "CREATE",
+      difficulty: 5,
+      examTip: "Final Boss tests meta-cognition: Can you defend an imperfect choice with clinical reasoning? This is charge nurse reality."
     }
   ]
 };
