@@ -2545,23 +2545,23 @@ Rationale: ${missed.question.rationale}
   const GameScreen = () => {
     // Challenge Mode rendering
     if (competitiveMode === 'challenge' && challengeGame) {
-      const currentRound = challengeGame.currentRound;
-      const currentScenario = challengeGame.scenarios[currentRound];
-      const phase = challengeGame.phase;
+      const gameState = challengeGame.getState();
+      const phase = gameState.phase;
+      const currentScenario = gameState.currentScenario;
       
       // JUDGE Phase: Show InstructorJudgePanel
       if (phase === PHASES.JUDGE) {
         return (
           <div className="min-h-screen bg-slate-900 text-white p-6">
             <InstructorJudgePanel
-              gameState={challengeGame}
+              gameState={gameState}
               onJudge={(decision) => {
-                const updatedGame = challengeGame.judge(decision);
-                setChallengeGame(updatedGame);
+                challengeGame.judge(decision);
+                setChallengeGame({...challengeGame}); // Force re-render
               }}
               onReveal={() => {
-                const updatedGame = challengeGame.revealAndScore();
-                setChallengeGame(updatedGame);
+                challengeGame.revealAndScore();
+                setChallengeGame({...challengeGame}); // Force re-render
               }}
             />
           </div>
@@ -2570,33 +2570,31 @@ Rationale: ${missed.question.rationale}
       
       // REVEAL Phase: Show results
       if (phase === PHASES.REVEAL) {
-        const scenario = challengeGame.scenarios[challengeGame.currentRound];
-        
         return (
           <div className="min-h-screen bg-slate-900 text-white p-6">
             <div className="max-w-4xl mx-auto">
-              <h2 className="text-3xl font-black mb-6">📊 Round {challengeGame.currentRound + 1} Results</h2>
+              <h2 className="text-3xl font-black mb-6">📊 Round {gameState.round} Results</h2>
               
               {/* Correct Answer */}
               <div className="mb-6 p-6 bg-green-900/30 border-2 border-green-500 rounded-xl">
                 <h3 className="text-xl font-bold text-green-400 mb-3">✅ Correct Answer</h3>
-                <p className="text-lg mb-3">{scenario.choices[scenario.correctIndex]}</p>
-                <p className="text-slate-300">{scenario.rationaleCorrect}</p>
+                <p className="text-lg mb-3">{currentScenario.choices[currentScenario.correctIndex]}</p>
+                <p className="text-slate-300">{currentScenario.rationaleCorrect}</p>
               </div>
               
               {/* Team Scores */}
               <div className="mb-6 p-6 bg-slate-800 rounded-xl">
                 <h3 className="text-xl font-bold mb-4">🏆 Current Standings</h3>
                 <div className="space-y-3">
-                  {challengeGame.teams
-                    .sort((a, b) => challengeGame.scores[b.id] - challengeGame.scores[a.id])
+                  {gameState.teams
+                    .sort((a, b) => b.score - a.score)
                     .map((team, idx) => (
                       <div key={team.id} className="flex items-center justify-between p-4 bg-slate-700 rounded-lg">
                         <div className="flex items-center gap-3">
                           <span className="text-2xl">{['🥇', '🥈', '🥉', '4️⃣'][idx]}</span>
                           <span className="font-bold">{team.name}</span>
                         </div>
-                        <span className="text-2xl font-mono font-bold">{challengeGame.scores[team.id]}</span>
+                        <span className="text-2xl font-mono font-bold">{team.score}</span>
                       </div>
                     ))}
                 </div>
@@ -2605,9 +2603,9 @@ Rationale: ${missed.question.rationale}
               {/* Next Round Button */}
               <button
                 onClick={() => {
-                  if (challengeGame.currentRound + 1 < challengeGame.scenarios.length) {
-                    const nextGame = challengeGame.nextScenario();
-                    setChallengeGame(nextGame);
+                  if (gameState.round < challengeScenarios.length) {
+                    challengeGame.nextScenario();
+                    setChallengeGame({...challengeGame}); // Force re-render
                   } else {
                     // End game
                     setGameState('summary');
@@ -2615,7 +2613,7 @@ Rationale: ${missed.question.rationale}
                 }}
                 className="w-full py-4 bg-yellow-500 hover:bg-yellow-400 rounded-xl font-black text-xl text-slate-900 transition"
               >
-                {challengeGame.currentRound + 1 < challengeGame.scenarios.length 
+                {gameState.round < challengeScenarios.length 
                   ? '➡️ Next Round' 
                   : '🏁 View Final Results'}
               </button>
@@ -2632,7 +2630,7 @@ Rationale: ${missed.question.rationale}
             <div className="mb-6 flex justify-between items-center">
               <div>
                 <h2 className="text-2xl font-black">⚔️ Challenge Mode</h2>
-                <p className="text-slate-400">Round {challengeGame.currentRound + 1} / {challengeGame.scenarios.length}</p>
+                <p className="text-slate-400">Round {gameState.round} / {challengeScenarios.length}</p>
               </div>
               <button
                 onClick={() => {
@@ -2651,10 +2649,10 @@ Rationale: ${missed.question.rationale}
             {/* Current Scores */}
             <div className="mb-6 p-4 bg-slate-800 rounded-xl">
               <div className="flex justify-around">
-                {challengeGame.teams.map(team => (
+                {gameState.teams.map(team => (
                   <div key={team.id} className="text-center">
                     <div className="font-bold">{team.name}</div>
-                    <div className="text-2xl font-mono font-black">{challengeGame.scores[team.id]}</div>
+                    <div className="text-2xl font-mono font-black">{team.score}</div>
                   </div>
                 ))}
               </div>
@@ -2671,22 +2669,28 @@ Rationale: ${missed.question.rationale}
                 <>
                   <div className="space-y-3 mb-6">
                     {currentScenario.choices.map((choice, idx) => (
-                      <button
+                      <div
                         key={idx}
-                        onClick={() => {
-                          // In real implementation, would need team selection UI
-                          // For now, just show placeholder
-                        }}
-                        className="w-full p-4 bg-slate-700 hover:bg-slate-600 rounded-lg text-left transition"
+                        className="w-full p-4 bg-slate-700 rounded-lg text-left"
                       >
                         <span className="font-bold mr-3">{String.fromCharCode(65 + idx)}.</span>
                         {choice}
-                      </button>
+                      </div>
                     ))}
                   </div>
                   <div className="text-center text-slate-400 text-sm">
-                    📱 Teams: Submit your answers on your devices
+                    📱 Teams: Submit your answers (simulated - click button below to proceed)
                   </div>
+                  <button
+                    onClick={() => {
+                      // Simulate teams submitting answers
+                      challengeGame.submitAnswer(gameState.teams[0].id, 0);
+                      setChallengeGame({...challengeGame});
+                    }}
+                    className="mt-4 w-full px-6 py-3 bg-blue-500 hover:bg-blue-400 rounded-lg font-bold transition"
+                  >
+                    Simulate Team Submissions (Testing)
+                  </button>
                 </>
               )}
               
@@ -2697,8 +2701,8 @@ Rationale: ${missed.question.rationale}
                   <p className="text-slate-400">Instructor will open challenge window</p>
                   <button
                     onClick={() => {
-                      const updatedGame = challengeGame.openChallengeWindow();
-                      setChallengeGame(updatedGame);
+                      challengeGame.openChallengeWindow();
+                      setChallengeGame({...challengeGame});
                     }}
                     className="mt-6 px-6 py-3 bg-yellow-500 hover:bg-yellow-400 rounded-lg font-bold text-slate-900 transition"
                   >
@@ -2711,11 +2715,11 @@ Rationale: ${missed.question.rationale}
                 <div className="text-center py-8">
                   <div className="text-4xl mb-4">⚔️</div>
                   <p className="text-xl font-bold mb-2">Challenge Window Open</p>
-                  <p className="text-slate-400 mb-6">Teams can submit challenges</p>
+                  <p className="text-slate-400 mb-6">Teams can submit challenges (simulated)</p>
                   <button
                     onClick={() => {
-                      const updatedGame = challengeGame.lockChallenges();
-                      setChallengeGame(updatedGame);
+                      challengeGame.lockChallenges();
+                      setChallengeGame({...challengeGame});
                     }}
                     className="px-6 py-3 bg-red-500 hover:bg-red-400 rounded-lg font-bold transition"
                   >
@@ -3850,12 +3854,15 @@ Rationale: ${missed.question.rationale}
       }
       
       // Use dedicated Challenge Mode scenarios with proper format
-      const game = createChallengeGame({
+      const gameEngine = createChallengeGame({
         teams: challengeTeams,
         scenarios: challengeScenarios
       });
       
-      setChallengeGame(game);
+      // Start the first round by loading the first scenario
+      gameEngine.nextScenario();
+      
+      setChallengeGame(gameEngine);
       setCompetitiveMode('challenge');
       setShowTeamLobby(false);
       setGameState('playing');
