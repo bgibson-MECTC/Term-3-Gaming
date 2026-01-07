@@ -1326,7 +1326,7 @@ export default function RNMasteryGame() {
     
     // Get custom timer for day-to-be-wrong chapter questions
     const currentQuestion = questions[currentQuestionIndex];
-    const maxTime = (activeChapter === 'day-to-be-wrong' && currentQuestion?.timeLimit) 
+    const maxTime = (activeChapter?.id === 'day-to-be-wrong' && currentQuestion?.timeLimit) 
       ? currentQuestion.timeLimit 
       : 30;
     
@@ -1631,7 +1631,7 @@ export default function RNMasteryGame() {
     // Reset timer for ranked mode with custom timeLimit
     if (gameMode === 'ranked') {
       const nextQuestion = questions[currentQuestionIndex + 1];
-      const customTime = (activeChapter === 'day-to-be-wrong' && nextQuestion?.timeLimit) 
+      const customTime = (activeChapter?.id === 'day-to-be-wrong' && nextQuestion?.timeLimit) 
         ? nextQuestion.timeLimit 
         : 30;
       setTimeLeft(customTime);
@@ -1742,7 +1742,7 @@ export default function RNMasteryGame() {
     }
     
     // Custom scoring for "day-to-be-wrong" chapter
-    const isDayToBeWrong = activeChapter === 'day-to-be-wrong';
+    const isDayToBeWrong = activeChapter?.id === 'day-to-be-wrong' || activeChapter?.chapterId === 'day-to-be-wrong';
     
     // Display consequence for "day-to-be-wrong" chapter
     if (isDayToBeWrong && q.consequences && optionIndex !== null) {
@@ -2054,7 +2054,7 @@ export default function RNMasteryGame() {
 
   const nextQuestion = () => {
     // Phase 2: Check if we need to insert an escalation question
-    if (activeChapter === 'day-to-be-wrong' && triggeredEscalations.length > 0) {
+    if ((activeChapter?.id === 'day-to-be-wrong' || activeChapter?.chapterId === 'day-to-be-wrong') && triggeredEscalations.length > 0) {
       const nextEscalation = triggeredEscalations[0];
       const escalationQuestion = ESCALATION_SCENARIOS[nextEscalation];
       
@@ -2553,7 +2553,7 @@ Rationale: ${missed.question.rationale}
             )}
             
             {/* Phase 2: Resource Display for Day to be Wrong */}
-            {activeChapter === 'day-to-be-wrong' && !suddenDeathActive && (
+            {(activeChapter?.id === 'day-to-be-wrong' || activeChapter?.chapterId === 'day-to-be-wrong') && !suddenDeathActive && (
               <div className="flex items-center gap-2">
                 <div className={`px-2 py-1 rounded-md border text-xs font-bold ${
                   resources.isolationRooms > 0 
@@ -2802,7 +2802,7 @@ Rationale: ${missed.question.rationale}
                   )}
                   
                   {/* Consequence Display for "A Day to be Wrong" */}
-                  {consequenceText && activeChapter === 'day-to-be-wrong' && (
+                  {consequenceText && (activeChapter?.id === 'day-to-be-wrong' || activeChapter?.chapterId === 'day-to-be-wrong') && (
                     <div className="mb-4">
                       <div className={`p-4 rounded-xl border-2 ${
                         selectedOption === q.correctIndex 
