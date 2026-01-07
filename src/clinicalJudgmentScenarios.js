@@ -398,10 +398,10 @@ Infection control is demanding an explanation. Your manager is standing here. Th
 
 ⚠️ You must make a CLINICAL ARGUMENT for why NOT isolating was defensible, despite the obvious risk.`,
       options: [
-        "Resource scarcity - other patients had higher mortality risk",
-        "MRSA colonization vs infection - contact precautions sufficient",
-        "Patient autonomy - roommate understood and accepted risk",
-        "Cost-benefit analysis - isolation causes psychological harm"
+        "Resource scarcity",
+        "MRSA colonization vs infection",
+        "Patient autonomy",
+        "Cost-benefit analysis"
       ],
       correctIndex: 1, // MRSA colonization argument is most defensible
       timeLimit: 90, // Longer - they need to think hard
@@ -471,10 +471,10 @@ export const ESCALATION_SCENARIOS = {
 - Lab confirms: Patient A positive for C. diff
 - Infection control called emergency meeting`,
     options: [
-      "Close the unit to new admissions immediately",
-      "Use your EMERGENCY PASS to get rapid cleaning/disinfection",
-      "Send mass email to all staff about handwashing",
-      "Call provider to order empiric vancomycin for all exposed patients"
+      "Close the unit to new admissions",
+      "Use your EMERGENCY PASS",
+      "Send mass email to all staff",
+      "Call provider to order empiric vancomycin"
     ],
     correctIndex: 1,
     timeLimit: 45,
@@ -500,10 +500,10 @@ export const ESCALATION_SCENARIOS = {
 - You have ONE PROVIDER CALL available
 - Code team is at another emergency`,
     options: [
-      "Use PROVIDER CALL for emergency neurology consult",
-      "Start seizure precautions and wait for code team",
-      "Transfer to ICU immediately using your authority",
-      "Give lorazepam and hope it stops"
+      "Use PROVIDER CALL",
+      "Start seizure precautions and wait",
+      "Transfer to ICU immediately",
+      "Give lorazepam"
     ],
     correctIndex: 0,
     timeLimit: 30,
@@ -529,10 +529,10 @@ export const ESCALATION_SCENARIOS = {
 - You're charge nurse - they need post-ROSC plan
 - One ISOLATION ROOM available for post-code care`,
     options: [
-      "ICU admission, empiric antibiotics, isolation room for infection risk",
-      "Post-code monitoring in ED, save isolation room",
-      "Transfer to outside hospital with neuro-ICU",
-      "Continue code - outcome poor with delayed treatment"
+      "ICU admission with isolation room",
+      "Post-code monitoring in ED",
+      "Transfer to outside hospital",
+      "Continue code"
     ],
     correctIndex: 0,
     timeLimit: 30,
@@ -558,10 +558,10 @@ export const ESCALATION_SCENARIOS = {
 - Employee health closed until 8am (4 more hours)
 - You have one EMERGENCY PASS to override protocols`,
     options: [
-      "Use EMERGENCY PASS - activate 24/7 occupational health on-call",
-      "Wait for employee health in morning, document well",
-      "Send RN to ED as 'patient' for PEP",
-      "Give leftover HIV meds from pharmacy stock"
+      "Use EMERGENCY PASS",
+      "Wait for employee health in morning",
+      "Send RN to ED for PEP",
+      "Give leftover HIV meds from pharmacy"
     ],
     correctIndex: 0,
     timeLimit: 30,
