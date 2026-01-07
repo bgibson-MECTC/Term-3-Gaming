@@ -15,6 +15,7 @@ import InstructorJudgePanel from './components/InstructorJudgePanel';
 import { transformToRankedQuestion, scoreRationale, calculateTimeMultiplier, detectAnswerPattern } from './questionTransformer';
 import { getClinicalJudgmentQuestions, ESCALATION_SCENARIOS } from './clinicalJudgmentScenarios';
 import { createChallengeGame, PHASES } from './challengeEngine';
+import { challengeScenarios } from './challengeScenarios';
 
 // Log Firebase status
 console.log('Firebase initialized:', { db: !!db, auth: !!auth });
@@ -3848,24 +3849,10 @@ Rationale: ${missed.question.rationale}
         return;
       }
       
-      // Get questions from current chapter (Day to be Wrong)
-      const chapter = INITIAL_DATA.find(c => c.id === 'day-to-be-wrong');
-      const scenarios = getClinicalJudgmentQuestions().map(q => ({
-        id: q.id,
-        prompt: q.text,
-        stem: q.scenario,
-        choices: q.options,
-        correctIndex: q.correctIndex,
-        rationaleCorrect: q.rationale,
-        rationaleWrong: q.options.map((opt, idx) => 
-          idx === q.correctIndex ? '' : `${opt} is incorrect because...`
-        ),
-        consequenceIfWrong: q.consequences?.incorrect || ''
-      }));
-      
+      // Use dedicated Challenge Mode scenarios with proper format
       const game = createChallengeGame({
         teams: challengeTeams,
-        scenarios: scenarios
+        scenarios: challengeScenarios
       });
       
       setChallengeGame(game);
