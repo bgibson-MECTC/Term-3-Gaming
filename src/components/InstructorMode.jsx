@@ -434,6 +434,7 @@ const ChapterLockManager = ({ unlockedChapters, onToggleLock, loading }) => {
     { id: 'ch21', title: 'Chapter 21: MDROs', icon: '🦠' },
     { id: 'ch22', title: 'Chapter 22: HIV/AIDS', icon: '🔬' },
     { id: 'quiz1', title: 'Quiz 1 Review', icon: '🎯' },
+    { id: 'day-to-be-wrong', title: '⚖️ A Day to be Wrong', icon: '⚖️' },
   ];
 
   return (
