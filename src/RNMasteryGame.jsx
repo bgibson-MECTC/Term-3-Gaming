@@ -2031,10 +2031,32 @@ export default function RNMasteryGame() {
     setShowRationale(true);
     
     // Phase 2: Trigger escalation if wrong answer on day-to-be-wrong (but not in sudden death)
+    console.log('🔍 Escalation Check:', { 
+      isDayToBeWrong, 
+      isCorrect, 
+      confLevel, 
+      suddenDeathActive,
+      questionId: q.id,
+      activeChapter: activeChapter?.id || activeChapter?.chapterId,
+      triggeredEscalations
+    });
     if (isDayToBeWrong && !isCorrect && confLevel !== 'TIMEOUT' && !suddenDeathActive) {
       const escalationKey = getEscalationForQuestion(q.id);
+      console.log('🚨 Escalation triggered:', escalationKey);
       if (escalationKey && !triggeredEscalations.includes(escalationKey)) {
-        // Queue escalation to be inserted after this question
+        // Insert escalation question IMMEDIATELY into the queue
+        console.log('✅ Inserting escalation into question queue:', escalationKey);
+        const escalationQuestion = ESCALATION_SCENARIOS[escalationKey];
+        if (escalationQuestion) {
+          const updatedQuestions = [
+            ...questions.slice(0, currentQuestionIndex + 1),
+            escalationQuestion,
+            ...questions.slice(currentQuestionIndex + 1)
+          ];
+          console.log('📋 Questions updated from', questions.length, 'to', updatedQuestions.length);
+          setQuestions(updatedQuestions);
+        }
+        // Track that we've triggered this escalation
         setTriggeredEscalations([...triggeredEscalations, escalationKey]);
         setEscalationLevel(escalationLevel + 1);
       }
@@ -2053,23 +2075,9 @@ export default function RNMasteryGame() {
   };
 
   const nextQuestion = () => {
-    // Phase 2: Check if we need to insert an escalation question
-    if ((activeChapter?.id === 'day-to-be-wrong' || activeChapter?.chapterId === 'day-to-be-wrong') && triggeredEscalations.length > 0) {
-      const nextEscalation = triggeredEscalations[0];
-      const escalationQuestion = ESCALATION_SCENARIOS[nextEscalation];
-      
-      if (escalationQuestion) {
-        // Insert escalation question into the queue
-        const updatedQuestions = [
-          ...questions.slice(0, currentQuestionIndex + 1),
-          escalationQuestion,
-          ...questions.slice(currentQuestionIndex + 1)
-        ];
-        setQuestions(updatedQuestions);
-        // Remove this escalation from pending list
-        setTriggeredEscalations(triggeredEscalations.slice(1));
-      }
-    }
+    // Escalation questions are now inserted immediately in handleAnswer
+    // No need to check here anymore
+    console.log('🔄 nextQuestion called, moving to question', currentQuestionIndex + 1, 'of', questions.length);
     
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
