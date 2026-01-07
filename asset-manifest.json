@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/Term-3-Gaming/static/css/main.65fba9a1.css",
+    "main.js": "/Term-3-Gaming/static/js/main.e8ddd440.js",
+    "index.html": "/Term-3-Gaming/index.html",
+    "main.65fba9a1.css.map": "/Term-3-Gaming/static/css/main.65fba9a1.css.map",
+    "main.e8ddd440.js.map": "/Term-3-Gaming/static/js/main.e8ddd440.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.65fba9a1.css",
+    "static/js/main.e8ddd440.js"
+  ]
+}
