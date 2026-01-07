@@ -1710,6 +1710,37 @@ export default function RNMasteryGame() {
       isCorrect = optionIndex !== null && optionIndex === q.correctIndex;
     }
     
+    // HARD MODE SCORING: Calculate penalties
+    let pointChange = 0;
+    let penaltyReason = '';
+    
+    if (q.hardMode && q.penalties) {
+      if (isCorrect) {
+        pointChange = 10; // Base points for correct
+        // Bonus for quick decision
+        if (timeSpent < q.timeLimit * 0.66) {
+          pointChange += 5;
+          penaltyReason = ' (+5 quick decision bonus)';
+        }
+      } else {
+        // Wrong answer penalties
+        pointChange = q.penalties.wrong || -15;
+        penaltyReason = ` (${q.penalties.wrong} priority error)`;
+        
+        // Delayed decision penalty
+        if (timeSpent > q.timeLimit * 0.75) {
+          pointChange += (q.penalties.delayed || -5);
+          penaltyReason += ` (${q.penalties.delayed} delayed)`;
+        }
+        
+        // Secondary harm penalty for cascade effects
+        if (q.penalties.secondaryHarm && optionIndex !== null) {
+          pointChange += (q.penalties.secondaryHarm || -10);
+          penaltyReason += ` (${q.penalties.secondaryHarm} secondary harm)`;
+        }
+      }
+    }
+    
     // Custom scoring for "day-to-be-wrong" chapter
     const isDayToBeWrong = activeChapter === 'day-to-be-wrong';
     
@@ -2787,6 +2818,32 @@ Rationale: ${missed.question.rationale}
                             <div className="text-sm leading-relaxed whitespace-pre-line">
                               {consequenceText}
                             </div>
+                            
+                            {/* HARD MODE: Show penalty breakdown */}
+                            {q.hardMode && q.penalties && selectedOption !== q.correctIndex && (
+                              <div className="mt-3 pt-3 border-t border-red-500/30">
+                                <div className="text-xs font-bold uppercase tracking-wider mb-2 text-red-200">
+                                  Penalty Breakdown:
+                                </div>
+                                <div className="text-xs space-y-1">
+                                  <div>❌ Wrong Priority: {q.penalties.wrong} points</div>
+                                  {timeSpent > q.timeLimit * 0.75 && (
+                                    <div>⏱️ Delayed Decision: {q.penalties.delayed} points</div>
+                                  )}
+                                  {q.penalties.secondaryHarm && (
+                                    <div>⚠️ Secondary Harm: {q.penalties.secondaryHarm} points</div>
+                                  )}
+                                  <div className="pt-2 border-t border-red-500/20 font-bold text-red-300">
+                                    Total Impact: {
+                                      (q.penalties.wrong || 0) + 
+                                      (timeSpent > q.timeLimit * 0.75 ? (q.penalties.delayed || 0) : 0) +
+                                      (q.penalties.secondaryHarm || 0)
+                                    } points
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                            
                             {/* Resource consumption notification */}
                             {q.requiresResource && selectedOption === q.correctIndex && (
                               <div className="mt-3 pt-3 border-t border-green-500/30">

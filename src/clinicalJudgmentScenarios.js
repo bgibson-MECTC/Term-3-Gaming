@@ -39,8 +39,15 @@ export const CLINICAL_JUDGMENT_SCENARIOS = {
         "Try to share the room between patients"
       ],
       correctIndex: 2,
-      timeLimit: 45, // seconds - reduced for pressure
-      requiresConsequence: true, // HARD MODE: must name what they sacrifice
+      timeLimit: 45,
+      requiresConsequence: true,
+      hardMode: true,
+      evolutionTrigger: true, // Wrong answer evolves to escalation
+      penalties: {
+        wrong: -15, // Penalty for wrong choice
+        delayed: -5, // Penalty if too slow
+        secondaryHarm: -10 // Additional penalty for cascade effects
+      },
       consequences: {
         0: "⚠️ **You chose A.** C. diff contained BUT: Immunocompromised patient now colonized with MRSA. Cost: One infection prevented, one created.",
         1: "⚠️ **You chose B.** CRE monitored BUT: C. diff now spreading. 3 patients in hallway exposed. Cost: Saved one, infected three.",
@@ -52,6 +59,12 @@ export const CLINICAL_JUDGMENT_SCENARIOS = {
         trackSacrifices: true
       },
       rationale: `**Best choice: Patient C** (though still not ideal)
+
+**SCORING:**
+✓ Correct priority = +10 points
+✓ Quick decision (< 30s) = +5 bonus
+❌ Wrong choice = -15 points + secondary harm penalty
+⏱️ Delayed decision = -5 points
 
 **Why C is least dangerous:**
 - MRSA + draining wound + immunocompromised roommate = HIGH transmission risk
@@ -102,6 +115,13 @@ export const CLINICAL_JUDGMENT_SCENARIOS = {
       ],
       correctIndex: 1,
       timeLimit: 60,
+      hardMode: true,
+      evolutionTrigger: true,
+      penalties: {
+        wrong: -20, // Higher penalty - life-threatening miss
+        delayed: -10, // Respiratory emergency can't wait
+        secondaryHarm: -15 // Patient deteriorates
+      },
       consequences: {
         0: "❌ **Delayed diagnosis!** Viral load rebounds to 50,000 in 2 weeks. Patient was actually adherent.",
         1: "✅ **Life saved.** Started on Bactrim. Chest X-ray confirms PCP. Patient hospitalized but stable.",
@@ -164,10 +184,15 @@ export const CLINICAL_JUDGMENT_SCENARIOS = {
         "Provide emotional support - employee is panicking",
         "Complete incident documentation - required protocol"
       ],
-      correctIndex: 0, // PEP is highest priority
-      timeLimit: 30, // HARD MODE: Less time to decide
+      correctIndex: 0,
+      timeLimit: 30,
       hardMode: true,
-      costOfChoice: "You must name what gets sacrificed by choosing this action",
+      evolutionTrigger: true,
+      penalties: {
+        wrong: -25, // Severe penalty - time-sensitive
+        delayed: -15, // Every second counts
+        secondaryHarm: -20 // PEP window closing
+      },
       consequences: {
         0: "✅ **PEP started within window.** COST: Employee still anxious but protected. Could have been gentler.",
         1: "❌ **Labs ordered.** COST: PEP delayed 3 hours. Effectiveness dropped from 95% to 70%. Preventable risk.",
