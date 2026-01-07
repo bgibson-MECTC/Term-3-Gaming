@@ -2215,10 +2215,19 @@ Rationale: ${missed.question.rationale}
 
         {/* Chapter Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...INITIAL_DATA, ...customChapters].map(chapter => {
+          {[...INITIAL_DATA, ...customChapters]
+            .filter(chapter => {
+              const chapterId = chapter.id || chapter.chapterId;
+              // "A Day to be Wrong" ONLY shows in Ranked Mode, never in Study Mode
+              if (chapterId === 'day-to-be-wrong') {
+                return gameMode === 'ranked';
+              }
+              return true;
+            })
+            .map(chapter => {
             const chapterId = chapter.id || chapter.chapterId;
             const isCompleted = submittedChapters.includes(chapter.title);
-            // "A Day to be Wrong" is ALWAYS unlocked - hardcoded override
+            // "A Day to be Wrong" is ALWAYS unlocked in Ranked Mode
             const isChapterLocked = chapterId === 'day-to-be-wrong' ? false : !unlockedChapters.includes(chapterId);
             const rankModeUnlocked = isRankModeUnlocked(chapterId);
             const studyScore = getStudyModePercentage(chapterId);
