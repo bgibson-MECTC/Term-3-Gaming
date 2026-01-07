@@ -2383,7 +2383,8 @@ Rationale: ${missed.question.rationale}
             const isChapterLocked = chapterId === 'day-to-be-wrong' ? false : !unlockedChapters.includes(chapterId);
             const rankModeUnlocked = isRankModeUnlocked(chapterId);
             const studyScore = getStudyModePercentage(chapterId);
-            const isRankedLocked = gameMode === 'ranked' && (!rankModeUnlocked || isCompleted);
+            // "A Day to be Wrong" bypasses rank mode unlock requirement
+            const isRankedLocked = chapterId === 'day-to-be-wrong' ? isCompleted : (gameMode === 'ranked' && (!rankModeUnlocked || isCompleted));
             const isLocked = isChapterLocked || isRankedLocked;
             
             return (
