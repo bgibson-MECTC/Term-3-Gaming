@@ -2218,7 +2218,8 @@ Rationale: ${missed.question.rationale}
           {[...INITIAL_DATA, ...customChapters].map(chapter => {
             const chapterId = chapter.id || chapter.chapterId;
             const isCompleted = submittedChapters.includes(chapter.title);
-            const isChapterLocked = !unlockedChapters.includes(chapterId);
+            // "A Day to be Wrong" is ALWAYS unlocked - hardcoded override
+            const isChapterLocked = chapterId === 'day-to-be-wrong' ? false : !unlockedChapters.includes(chapterId);
             const rankModeUnlocked = isRankModeUnlocked(chapterId);
             const studyScore = getStudyModePercentage(chapterId);
             const isRankedLocked = gameMode === 'ranked' && (!rankModeUnlocked || isCompleted);
