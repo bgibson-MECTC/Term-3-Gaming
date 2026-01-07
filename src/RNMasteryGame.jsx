@@ -1283,12 +1283,12 @@ export default function RNMasteryGame() {
           setUnlockedChapters(settingsDoc.data().unlocked || []);
         } else {
           // If no settings doc exists, unlock all by default
-          setUnlockedChapters(['ch18', 'ch19', 'ch20', 'ch21', 'ch22', 'quiz1']);
+          setUnlockedChapters(['ch18', 'ch19', 'ch20', 'ch21', 'ch22', 'quiz1', 'day-to-be-wrong']);
         }
       } catch (error) {
         console.error('Error loading chapter locks:', error);
         // Default: unlock all built-in chapters on error
-        setUnlockedChapters(['ch18', 'ch19', 'ch20', 'ch21', 'ch22', 'quiz1']);
+        setUnlockedChapters(['ch18', 'ch19', 'ch20', 'ch21', 'ch22', 'quiz1', 'day-to-be-wrong']);
       }
     };
     loadUnlockedChapters();
@@ -1467,6 +1467,24 @@ export default function RNMasteryGame() {
   // --- GAME LOGIC ---
   const startChapter = (chapter, mode = MODES.CHAPTER_REVIEW) => {
     const chapterId = chapter.id || chapter.chapterId;
+    
+    // "A Day to be Wrong" bypasses study/ranked mode - always direct play
+    if (chapterId === 'day-to-be-wrong') {
+      const chapterQuestions = enrichQuestions(chapter.questions);
+      setActiveChapter(chapter);
+      setQuestions(chapterQuestions);
+      setCurrentQuestionIndex(0);
+      setScore(0);
+      setStreak(0);
+      setCorrectCount(0);
+      setIncorrectCount(0);
+      setMissedQuestions([]);
+      setRecentAnswerIndices([]);
+      setRushAnswerWarnings(0);
+      setGameState('playing');
+      resetTurn();
+      return;
+    }
     
     // Check for pending remediation (blocks Rank Mode)
     if (gameMode === 'ranked' && needsRemediation.length > 0) {
