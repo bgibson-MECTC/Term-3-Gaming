@@ -1583,7 +1583,10 @@ export default function RNMasteryGame() {
       chapterQuestions = availableQuestions;
       
       // Transform questions for clinical scenarios
-      chapterQuestions = chapterQuestions.map(q => transformToRankedQuestion(q));
+      // EXCEPT "day-to-be-wrong" which are already clinical scenarios
+      if (chapterId !== 'day-to-be-wrong') {
+        chapterQuestions = chapterQuestions.map(q => transformToRankedQuestion(q));
+      }
     }
     
     setActiveChapter(chapter);
