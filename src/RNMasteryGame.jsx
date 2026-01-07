@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Bug, Bone, Activity, AlertCircle, Brain, Trophy, ArrowRight, CheckCircle, XCircle, Flame, Split, Loader2, Sparkles, Target, Crown, Lock, GraduationCap, Save, Download, Settings, Zap, Clock, Timer, LogOut } from 'lucide-react';
+import { Shield, Bug, Bone, Activity, AlertCircle, Brain, Trophy, ArrowRight, CheckCircle, XCircle, Flame, Split, Loader2, Sparkles, Target, Crown, Lock, GraduationCap, Save, Download, Settings, Zap, Clock, Timer, LogOut, Scale } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { collection, addDoc, onSnapshot, query, limit, serverTimestamp, getDocs, where } from "firebase/firestore";
 import { signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "firebase/auth";
@@ -1151,12 +1151,12 @@ const INITIAL_DATA = [
       }
     ]
   },
-  // CLINICAL JUDGMENT MODULE - "Least Dangerous" Mode
+  // CLINICAL JUDGMENT MODULE - "Least Dangerous" Classroom Activity
   {
-    id: 'clinical-judgment',
+    id: 'least-dangerous',
     title: '⚖️ Least Dangerous',
-    icon: <AlertCircle className="w-6 h-6" />,
-    description: '🔥🔥🔥🔥🔥 Every answer is wrong - pick the least dangerous risk',
+    icon: <Scale className="w-6 h-6" />,
+    description: '🔥🔥🔥🔥🔥 Clinical Judgment: Every answer is wrong - pick the least dangerous risk',
     questions: getClinicalJudgmentQuestions()
   }
 ];

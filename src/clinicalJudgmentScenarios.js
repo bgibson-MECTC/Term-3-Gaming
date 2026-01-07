@@ -14,14 +14,14 @@
  */
 
 export const CLINICAL_JUDGMENT_SCENARIOS = {
-  id: 'clinical-judgment',
+  id: 'least-dangerous',
   title: '⚖️ Least Dangerous - Clinical Judgment',
   icon: '⚖️',
   description: 'Every answer is wrong. Pick the least dangerous risk.',
   questions: [
     // ROUND 1: MDRO MORAL INJURY
     {
-      id: "cj_mdro_moral_injury",
+      id: "ld_q01_mdro_moral_injury",
       text: "You are charge nurse. One negative-pressure room available. Three patients arrive simultaneously.",
       scenario: `**Patient A:** Watery diarrhea ×6 hours • Recent clindamycin • No stool results yet
 
@@ -72,7 +72,7 @@ export const CLINICAL_JUDGMENT_SCENARIOS = {
 
     // ROUND 2: HIV — WHEN LABS LIE
     {
-      id: "cj_hiv_labs_lie",
+      id: "ld_q02_hiv_labs_lie",
       text: "HIV patient presents to clinic with the following data:",
       scenario: `**CD4:** 240
 **Viral load:** Undetectable
@@ -126,7 +126,7 @@ export const CLINICAL_JUDGMENT_SCENARIOS = {
 
     // ROUND 3: THE SATA FROM HELL
     {
-      id: "cj_sata_prep",
+      id: "ld_q03_sata_prep",
       text: "HIV patient starting PrEP (Pre-Exposure Prophylaxis). Which actions are REQUIRED before initiating PrEP? (Select ALL that apply - justify EACH)",
       options: [
         "HIV test",
@@ -186,7 +186,7 @@ Students pick CD4 because it "sounds important" for HIV. This tests understandin
 
     // ROUND 4: PRIORITY FLIP (THIS ONE HURTS)
     {
-      id: "cj_priority_flip",
+      id: "ld_q04_priority_flip",
       text: "You have FOUR patients. Who do you see FIRST?",
       scenario: `**Patient A:** HIV, CD4 180 • Missed ART doses • No symptoms
 
@@ -246,7 +246,7 @@ Students reflexively choose "lowest CD4" without reading symptoms. This tests cl
 
     // ROUND 5: NEEDLE STICK — THE TIME TRAP
     {
-      id: "cj_needlestick_time",
+      id: "ld_q05_needlestick_time",
       text: "Nurse reports a needle stick 2 hours ago but says: 'I wanted to finish my assignment first.' What is the MOST serious issue now?",
       options: [
         "Documentation delay - incident wasn't reported immediately",
@@ -314,8 +314,8 @@ Students think "we need to know the source first" - NO. Start PEP while investig
 export function getClinicalJudgmentQuestions() {
   return CLINICAL_JUDGMENT_SCENARIOS.questions.map(q => ({
     ...q,
-    chapter: 'clinical-judgment',
-    chapterId: 'clinical-judgment',
+    chapter: 'least-dangerous',
+    chapterId: 'least-dangerous',
     // Mark all as clinical judgment questions
     skill: q.skill || ["CLINICAL_JUDGMENT"],
     bloom: q.bloom || "EVALUATE",
