@@ -33,10 +33,10 @@ export const CLINICAL_JUDGMENT_SCENARIOS = {
 
 ⚠️ NO FULL LABS • NO VITALS • NO DIAGNOSIS CONFIRMATION`,
       options: [
-        "Patient A (CONSEQUENCE: Patient C's roommate gets exposed to MRSA drainage)",
-        "Patient B (CONSEQUENCE: Patient A spreads C. diff to 3+ patients in hallway)",
-        "Patient C (CONSEQUENCE: Patient B remains stable but protocols delayed)",
-        "Try to share the room (CONSEQUENCE: Cross-contamination + outbreak)"
+        "Patient A - Recent antibiotic + GI symptoms",
+        "Patient B - ICU transfer with fever history",
+        "Patient C - Draining wound + vulnerable roommate",
+        "Try to share the room between patients"
       ],
       correctIndex: 2,
       timeLimit: 45, // seconds - reduced for pressure
@@ -159,10 +159,10 @@ export const CLINICAL_JUDGMENT_SCENARIOS = {
 
 ⚠️ CHOOSE ONE - SEQUENCE DETERMINES OUTCOME`,
       options: [
-        "Start PEP immediately → window closing (CONSEQUENCE: Employee anxious without counseling first)",
-        "Obtain source patient labs → need data (CONSEQUENCE: PEP delayed 2+ hours, effectiveness drops)",
-        "Provide emotional support → employee panicking (CONSEQUENCE: PEP window closes while talking)",
-        "Complete incident documentation → required protocol (CONSEQUENCE: Time wasted, PEP effectiveness lost)"
+        "Start PEP immediately - time-sensitive medication",
+        "Obtain source patient labs first - need baseline data",
+        "Provide emotional support - employee is panicking",
+        "Complete incident documentation - required protocol"
       ],
       correctIndex: 0, // PEP is highest priority
       timeLimit: 30, // HARD MODE: Less time to decide
