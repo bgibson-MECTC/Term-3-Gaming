@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Bug, Bone, Activity, AlertCircle, Brain, Trophy, ArrowRight, CheckCircle, XCircle, Flame, Split, Loader2, Sparkles, Target, Crown, Lock, GraduationCap, Save, Download, Settings, Zap, Clock, Timer, LogOut, Scale } from 'lucide-react';
+import { Shield, Bug, Bone, Activity, AlertCircle, Brain, Trophy, ArrowRight, CheckCircle, XCircle, Flame, Split, Loader2, Sparkles, Target, Crown, Lock, GraduationCap, Save, Download, Settings, Zap, Clock, Timer, LogOut, Scale, Home } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { collection, addDoc, onSnapshot, query, limit, serverTimestamp, getDocs, where } from "firebase/firestore";
 import { signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "firebase/auth";
@@ -1176,10 +1176,10 @@ const LEGACY_DATA = [
   }
 ];
 
-export default function RNMasteryGame() {
+export default function RNMasteryGame({ onBackToHub, initialMode = 'study' }) {
   // Core Game State
   const [gameState, setGameState] = useState('menu'); 
-  const [gameMode, setGameMode] = useState('study'); // 'study' or 'ranked'
+  const [gameMode, setGameMode] = useState(initialMode); // 'study' or 'ranked'
   const [studyModeScores, setStudyModeScores] = useState(() => {
     const saved = localStorage.getItem('rnMasteryStudyScores');
     return saved ? JSON.parse(saved) : {};
@@ -2405,6 +2405,17 @@ Rationale: ${missed.question.rationale}
   const MenuScreen = () => (
     <div className="min-h-screen bg-slate-900 text-white p-6 flex flex-col items-center justify-center font-sans">
       <div className="max-w-5xl w-full animate-in fade-in zoom-in-95 duration-500">
+        {/* Back to Hub Button */}
+        {onBackToHub && (
+          <button
+            onClick={onBackToHub}
+            className="mb-4 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center gap-2 transition"
+          >
+            <Home className="w-4 h-4" />
+            Back to Hub
+          </button>
+        )}
+        
         <header className="text-center mb-8">
           <h1 className="text-6xl font-black mb-2 tracking-tighter">
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">RN</span>
