@@ -3,6 +3,14 @@ import { Lock, Plus, Edit2, Trash2, Save, X, Upload, Download, Unlock, Users, Tr
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 
+// LocalStorage keys
+const STORAGE_KEYS = {
+  CHAPTERS: 'instructor_customChapters',
+  LOCKS: 'instructor_chapterLocks',
+  SCORES: 'instructor_studentScores',
+  ANALYTICS: 'instructor_analytics'
+};
+
 const InstructorMode = ({ onExit }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
@@ -13,6 +21,7 @@ const InstructorMode = ({ onExit }) => {
   const [unlockedChapters, setUnlockedChapters] = useState([]);
   const [studentScores, setStudentScores] = useState([]);
   const [analyticsData, setAnalyticsData] = useState([]);
+  const [useLocalStorage, setUseLocalStorage] = useState(true);
 
   // Simple password (in production, use proper authentication)
   const INSTRUCTOR_PASSWORD = 'nursing2024';
@@ -26,9 +35,40 @@ const InstructorMode = ({ onExit }) => {
     }
   }, [isAuthenticated]);
 
-  const loadAnalyticsData = async () => {
-    if (!db) return;
+  // LocalStorage helpers
+  const getFromStorage = (key) => {
     try {
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : null;
+    } catch (error) {
+      console.error('Error reading from localStorage:', error);
+      return null;
+    }
+  };
+
+  const saveToStorage = (key, data) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
+  };
+
+  const loadAnalyticsData = async () => {
+    try {
+      if (useLocalStorage) {
+        const data = getFromStorage(STORAGE_KEYS.ANALYTICS) || [];
+        setAnalyticsData(data);
+        return;
+      }
+      
+      if (!db) {
+        setUseLocalStorage(true);
+        const data = getFromStorage(STORAGE_KEYS.ANALYTICS) || [];
+        setAnalyticsData(data);
+        return;
+      }
+      
       const q = query(
         collection(db, 'artifacts', 'rn-mastery-game', 'public', 'data', 'analytics'),
         orderBy('timestamp', 'desc')
@@ -40,13 +80,28 @@ const InstructorMode = ({ onExit }) => {
       });
       setAnalyticsData(analytics);
     } catch (error) {
-      console.error('Error loading analytics:', error);
+      console.error('Error loading analytics, using localStorage:', error);
+      setUseLocalStorage(true);
+      const data = getFromStorage(STORAGE_KEYS.ANALYTICS) || [];
+      setAnalyticsData(data);
     }
   };
 
   const loadStudentScores = async () => {
-    if (!db) return;
     try {
+      if (useLocalStorage) {
+        const data = getFromStorage(STORAGE_KEYS.SCORES) || [];
+        setStudentScores(data);
+        return;
+      }
+      
+      if (!db) {
+        setUseLocalStorage(true);
+        const data = getFromStorage(STORAGE_KEYS.SCORES) || [];
+        setStudentScores(data);
+        return;
+      }
+      
       const q = query(
         collection(db, 'artifacts', 'rn-mastery-game', 'public', 'data', 'scores'),
         orderBy('timestamp', 'desc')
@@ -58,31 +113,60 @@ const InstructorMode = ({ onExit }) => {
       });
       setStudentScores(scores);
     } catch (error) {
-      console.error('Error loading student scores:', error);
+      console.error('Error loading scores, using localStorage:', error);
+      setUseLocalStorage(true);
+      const data = getFromStorage(STORAGE_KEYS.SCORES) || [];
+      setStudentScores(data);
     }
   };
 
   const loadChapterLocks = async () => {
-    if (!db) return;
     try {
+      if (useLocalStorage) {
+        const data = getFromStorage(STORAGE_KEYS.LOCKS) || [];
+        setUnlockedChapters(data);
+        return;
+      }
+      
+      if (!db) {
+        setUseLocalStorage(true);
+        const data = getFromStorage(STORAGE_KEYS.LOCKS) || [];
+        setUnlockedChapters(data);
+        return;
+      }
+      
       const docSnap = await getDocs(collection(db, 'settings'));
       const settingsDoc = docSnap.docs.find(d => d.id === 'chapterAccess');
       if (settingsDoc) {
         setUnlockedChapters(settingsDoc.data().unlocked || []);
       }
     } catch (error) {
-      console.error('Error loading locks:', error);
+      console.error('Error loading locks, using localStorage:', error);
+      setUseLocalStorage(true);
+      const data = getFromStorage(STORAGE_KEYS.LOCKS) || [];
+      setUnlockedChapters(data);
     }
   };
 
   const loadChapters = async () => {
     try {
       setLoading(true);
-      if (!db) {
-        console.error('Firebase not initialized');
-        setChapters([]);
+      
+      if (useLocalStorage) {
+        const data = getFromStorage(STORAGE_KEYS.CHAPTERS) || [];
+        setChapters(data);
+        setLoading(false);
         return;
       }
+      
+      if (!db) {
+        setUseLocalStorage(true);
+        const data = getFromStorage(STORAGE_KEYS.CHAPTERS) || [];
+        setChapters(data);
+        setLoading(false);
+        return;
+      }
+      
       const querySnapshot = await getDocs(collection(db, 'customChapters'));
       const chaptersData = [];
       querySnapshot.forEach((doc) => {
@@ -90,9 +174,10 @@ const InstructorMode = ({ onExit }) => {
       });
       setChapters(chaptersData);
     } catch (error) {
-      console.error('Error loading chapters:', error);
-      // Just show empty list, don't alert on first load
-      setChapters([]);
+      console.error('Error loading chapters, using localStorage:', error);
+      setUseLocalStorage(true);
+      const data = getFromStorage(STORAGE_KEYS.CHAPTERS) || [];
+      setChapters(data);
     } finally {
       setLoading(false);
     }
@@ -110,6 +195,31 @@ const InstructorMode = ({ onExit }) => {
   const handleSaveChapter = async (chapterData) => {
     try {
       setLoading(true);
+      
+      if (useLocalStorage) {
+        const currentChapters = getFromStorage(STORAGE_KEYS.CHAPTERS) || [];
+        let updatedChapters;
+        
+        if (chapterData.id) {
+          // Update existing
+          updatedChapters = currentChapters.map(ch => 
+            ch.id === chapterData.id ? chapterData : ch
+          );
+          alert('Chapter updated!');
+        } else {
+          // Add new with generated ID
+          const newChapter = { ...chapterData, id: Date.now().toString() };
+          updatedChapters = [...currentChapters, newChapter];
+          alert('Chapter added!');
+        }
+        
+        saveToStorage(STORAGE_KEYS.CHAPTERS, updatedChapters);
+        setChapters(updatedChapters);
+        setEditingChapter(null);
+        setLoading(false);
+        return;
+      }
+      
       if (chapterData.id) {
         // Update existing
         const chapterRef = doc(db, 'customChapters', chapterData.id);
@@ -135,6 +245,17 @@ const InstructorMode = ({ onExit }) => {
     
     try {
       setLoading(true);
+      
+      if (useLocalStorage) {
+        const currentChapters = getFromStorage(STORAGE_KEYS.CHAPTERS) || [];
+        const updatedChapters = currentChapters.filter(ch => ch.id !== chapterId);
+        saveToStorage(STORAGE_KEYS.CHAPTERS, updatedChapters);
+        setChapters(updatedChapters);
+        alert('Chapter deleted!');
+        setLoading(false);
+        return;
+      }
+      
       await deleteDoc(doc(db, 'customChapters', chapterId));
       alert('Chapter deleted!');
       await loadChapters();
@@ -163,6 +284,13 @@ const InstructorMode = ({ onExit }) => {
         ? unlockedChapters.filter(id => id !== chapterId)
         : [...unlockedChapters, chapterId];
       
+      if (useLocalStorage) {
+        saveToStorage(STORAGE_KEYS.LOCKS, newUnlocked);
+        setUnlockedChapters(newUnlocked);
+        setLoading(false);
+        return;
+      }
+      
       await setDoc(doc(db, 'settings', 'chapterAccess'), {
         unlocked: newUnlocked
       });
@@ -189,6 +317,21 @@ const InstructorMode = ({ onExit }) => {
         }
         
         setLoading(true);
+        
+        if (useLocalStorage) {
+          const currentChapters = getFromStorage(STORAGE_KEYS.CHAPTERS) || [];
+          const newChapters = imported.map(ch => ({
+            ...ch,
+            id: Date.now().toString() + Math.random()
+          }));
+          const updatedChapters = [...currentChapters, ...newChapters];
+          saveToStorage(STORAGE_KEYS.CHAPTERS, updatedChapters);
+          setChapters(updatedChapters);
+          alert(`Imported ${imported.length} chapters!`);
+          setLoading(false);
+          return;
+        }
+        
         for (const chapter of imported) {
           const { id, ...chapterData } = chapter; // Remove old ID
           await addDoc(collection(db, 'customChapters'), chapterData);
@@ -203,6 +346,67 @@ const InstructorMode = ({ onExit }) => {
       }
     };
     reader.readAsText(file);
+  };
+
+  const generateSampleData = () => {
+    if (!window.confirm('Generate sample student data for testing analytics? This will add fake student scores and analytics.')) return;
+    
+    const sampleStudents = [
+      { name: 'Alice Johnson', uid: 'alice_001' },
+      { name: 'Bob Smith', uid: 'bob_002' },
+      { name: 'Carol Davis', uid: 'carol_003' },
+      { name: 'David Wilson', uid: 'david_004' },
+      { name: 'Emma Brown', uid: 'emma_005' }
+    ];
+    
+    const chapters = [
+      { id: 'ch18', title: 'Chapter 18' },
+      { id: 'ch19', title: 'Chapter 19' },
+      { id: 'ch20', title: 'Chapter 20' },
+      { id: 'ch21', title: 'Chapter 21' },
+      { id: 'ch22', title: 'Chapter 22' }
+    ];
+    
+    const scores = [];
+    const analytics = [];
+    
+    sampleStudents.forEach(student => {
+      chapters.forEach((chapter, idx) => {
+        if (Math.random() > 0.3) { // 70% chance student attempted this chapter
+          const score = 50 + Math.floor(Math.random() * 50); // 50-100 points
+          scores.push({
+            id: `score_${student.uid}_${chapter.id}_${Date.now()}`,
+            playerName: student.name,
+            uid: student.uid,
+            chapterTitle: chapter.title,
+            chapterId: chapter.id,
+            score: score,
+            timestamp: { toDate: () => new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000) }
+          });
+          
+          // Generate question analytics
+          for (let q = 1; q <= 10; q++) {
+            const questionId = `${chapter.id}_q${String(q).padStart(2, '0')}`;
+            const isCorrect = Math.random() > 0.4; // 60% correct rate
+            analytics.push({
+              id: `analytics_${student.uid}_${questionId}_${Date.now()}`,
+              questionId,
+              chapterTitle: chapter.title,
+              isCorrect,
+              timeSpent: 15 + Math.floor(Math.random() * 45), // 15-60 seconds
+              rationaleTier: isCorrect ? 'correct' : (Math.random() > 0.5 ? 'incorrect' : 'weak'),
+              timestamp: { toDate: () => new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000) }
+            });
+          }
+        }
+      });
+    });
+    
+    saveToStorage(STORAGE_KEYS.SCORES, scores);
+    saveToStorage(STORAGE_KEYS.ANALYTICS, analytics);
+    setStudentScores(scores);
+    setAnalyticsData(analytics);
+    alert('Sample data generated! Check Student Analytics and Item Analysis tabs.');
   };
 
   if (!isAuthenticated) {
@@ -261,7 +465,12 @@ const InstructorMode = ({ onExit }) => {
       <div className="max-w-6xl mx-auto">
         <div className="bg-white rounded-xl shadow-2xl p-8">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-3xl font-bold">Instructor Mode</h2>
+            <div>
+              <h2 className="text-3xl font-bold">Instructor Mode</h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Storage: {useLocalStorage ? '💾 Local Storage (Browser)' : '☁️ Firebase Cloud'}
+              </p>
+            </div>
             <button
               onClick={onExit}
               className="flex items-center gap-2 px-4 py-2 border-2 border-gray-300 rounded-lg hover:bg-gray-50"
@@ -320,7 +529,7 @@ const InstructorMode = ({ onExit }) => {
 
           {activeTab === 'chapters' && (
             <>
-              <div className="flex gap-4 mb-6">
+              <div className="flex gap-4 mb-6 flex-wrap">
                 <button
                   onClick={() => setEditingChapter({})}
                   className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700"
@@ -345,6 +554,15 @@ const InstructorMode = ({ onExit }) => {
                     className="hidden"
                   />
                 </label>
+                {useLocalStorage && (
+                  <button
+                    onClick={generateSampleData}
+                    className="flex items-center gap-2 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+                  >
+                    <TrendingUp className="w-5 h-5" />
+                    Generate Sample Data
+                  </button>
+                )}
               </div>
 
               {loading && (
@@ -429,19 +647,45 @@ const ChapterLockManager = ({ unlockedChapters, onToggleLock, loading }) => {
   // Import INITIAL_DATA from the main file
   const builtInChapters = [
     { id: 'ch18', title: 'Chapter 18: Immune Assessment', icon: '🛡️' },
-    { id: 'ch19', title: 'Chapter 19: Immune Disorders', icon: '🐛' },
+    { id: 'ch19', title: 'Chapter 19: Immune Disorders', icon: '🦠' },
     { id: 'ch20', title: 'Chapter 20: Connective Tissue', icon: '🦴' },
-    { id: 'ch21', title: 'Chapter 21: MDROs', icon: '🦠' },
-    { id: 'ch22', title: 'Chapter 22: HIV/AIDS', icon: '🔬' },
-    { id: 'quiz1', title: 'Quiz 1 Review', icon: '🎯' },
-    { id: 'day-to-be-wrong', title: '⚖️ A Day to be Wrong', icon: '⚖️' },
+    { id: 'ch21', title: 'Chapter 21: MDROs', icon: '🔬' },
+    { id: 'ch22', title: 'Chapter 22: HIV/AIDS', icon: '🧬' },
+    { id: 'quiz1', title: 'Quiz 1 Review', icon: '📋' },
   ];
+
+  const toggleAll = () => {
+    if (unlockedChapters.length === builtInChapters.length) {
+      // Lock all
+      builtInChapters.forEach(ch => {
+        if (unlockedChapters.includes(ch.id)) {
+          onToggleLock(ch.id);
+        }
+      });
+    } else {
+      // Unlock all
+      builtInChapters.forEach(ch => {
+        if (!unlockedChapters.includes(ch.id)) {
+          onToggleLock(ch.id);
+        }
+      });
+    }
+  };
 
   return (
     <div>
-      <p className="text-gray-600 mb-6">
-        Control which chapters students can access. Locked chapters will show a 🔒 badge and cannot be clicked.
-      </p>
+      <div className="flex justify-between items-center mb-6">
+        <p className="text-gray-600">
+          Control which chapters students can access. Locked chapters will show a 🔒 badge and cannot be clicked.
+        </p>
+        <button
+          onClick={toggleAll}
+          disabled={loading}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+        >
+          {unlockedChapters.length === builtInChapters.length ? 'Lock All' : 'Unlock All'}
+        </button>
+      </div>
 
       <div className="grid gap-3">
         {builtInChapters.map((chapter) => {
