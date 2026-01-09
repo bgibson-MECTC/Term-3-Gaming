@@ -19,11 +19,22 @@ export default function GameHub({ onSelectGame, onSettings, userName }) {
   }, []);
 
   const loadHub = async () => {
-    const cats = getCategories();
-    setCategories(cats);
-    
-    const chapters = getChapterMetadata();
-    setChapterCount(chapters.length);
+    try {
+      console.log('Loading hub...');
+      const cats = getCategories();
+      console.log('Categories loaded:', cats);
+      setCategories(cats);
+      
+      const chapters = getChapterMetadata();
+      console.log('Chapters loaded:', chapters);
+      setChapterCount(chapters.length);
+      console.log('Hub loaded successfully');
+    } catch (error) {
+      console.error('Error loading hub:', error);
+      // Set defaults on error
+      setCategories([]);
+      setChapterCount(0);
+    }
   };
 
   const handleGameSelect = (game) => {

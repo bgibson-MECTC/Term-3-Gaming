@@ -2,13 +2,8 @@
  * Game Registry System
  * 
  * Dynamically loads and manages different game modes without hardcoding.
- * Add new games by:
- * 1. Adding entry to data/games-registry.json
- * 2. Creating game component (optional - can reuse existing)
- * 3. Registry automatically loads it
  */
 
-import gamesConfig from '../config/games-registry.json';
 import { 
   GraduationCap, 
   Scale, 
@@ -30,6 +25,14 @@ import {
   Pill,
   Calculator
 } from 'lucide-react';
+
+let gamesConfig;
+try {
+  gamesConfig = require('../config/games-registry.json');
+} catch (error) {
+  console.error('Failed to load games config:', error);
+  gamesConfig = { games: [], categories: [] };
+}
 
 // Icon mapping for dynamic loading
 const ICON_MAP = {
@@ -65,6 +68,11 @@ export function getIcon(iconName) {
  * Get all enabled games
  */
 export function getAvailableGames() {
+  if (!gamesConfig || !gamesConfig.games) {
+    console.warn('Games config not loaded');
+    return [];
+  }
+  
   return gamesConfig.games
     .filter(game => game.enabled)
     .map(game => ({
@@ -84,6 +92,11 @@ export function getGamesByCategory(categoryId) {
  * Get all categories
  */
 export function getCategories() {
+  if (!gamesConfig || !gamesConfig.categories) {
+    console.warn('Categories config not loaded');
+    return [];
+  }
+  
   return gamesConfig.categories.map(cat => ({
     ...cat,
     IconComponent: getIcon(cat.icon),

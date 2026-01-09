@@ -2,27 +2,18 @@
  * Chapter Manager
  * 
  * Dynamically loads and manages chapters from JSON configuration.
- * No coding required to add new chapters - just add to chapters.json
- * and create corresponding question file.
- * 
- * HOW TO ADD A NEW CHAPTER:
- * 
- * 1. Add to data/chapters.json:
- *    {
- *      "id": "ch23",
- *      "title": "Ch 23: Your Topic",
- *      "description": "Brief description",
- *      "iconName": "Heart"
- *    }
- * 
- * 2. Create data/ch23-questions.json with questions
- * 
- * 3. Done! Chapter appears automatically in all compatible games
  */
 
-import chaptersConfig from '../config/chapters.json';
 import questionLoader from './questionLoader';
 import { getIcon } from './gameRegistry';
+
+let chaptersConfig;
+try {
+  chaptersConfig = require('../config/chapters.json');
+} catch (error) {
+  console.error('Failed to load chapters config:', error);
+  chaptersConfig = [];
+}
 
 /**
  * Load all chapters with their questions
@@ -72,6 +63,11 @@ export async function loadChapter(chapterId) {
  * Get chapter metadata only (no questions)
  */
 export function getChapterMetadata() {
+  if (!chaptersConfig || !Array.isArray(chaptersConfig)) {
+    console.warn('Chapters config not loaded');
+    return [];
+  }
+  
   return chaptersConfig.map(ch => ({
     ...ch,
     IconComponent: getIcon(ch.iconName)
