@@ -225,13 +225,3 @@ export {
   CHALLENGE_QUESTION_SCHEMA,
   CLINICAL_JUDGMENT_SCHEMA
 };
-
-// CommonJS export for Node.js scripts
-module.exports = {
-  validateQuestion,
-  validateQuestions,
-  logValidationResults,
-  STANDARD_QUESTION_SCHEMA,
-  CHALLENGE_QUESTION_SCHEMA,
-  CLINICAL_JUDGMENT_SCHEMA
-};

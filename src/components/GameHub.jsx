@@ -13,25 +13,37 @@ export default function GameHub({ onSelectGame, onSettings, userName }) {
   const [categories, setCategories] = useState([]);
   const [chapterCount, setChapterCount] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [debugInfo, setDebugInfo] = useState([]);
+  const [errorBanner, setErrorBanner] = useState(null);
 
   useEffect(() => {
     loadHub();
   }, []);
 
   const loadHub = async () => {
+    const logs = [];
     try {
-      console.log('Loading hub...');
-      const cats = getCategories();
-      console.log('Categories loaded:', cats);
-      setCategories(cats);
+      logs.push('Step 1: Starting hub load...');
+      setDebugInfo([...logs]);
       
-      const chapters = getChapterMetadata();
-      console.log('Chapters loaded:', chapters);
-      setChapterCount(chapters.length);
-      console.log('Hub loaded successfully');
+      logs.push('Step 2: Loading categories...');
+      setDebugInfo([...logs]);
+      const cats = getCategories();
+      
+      logs.push(`Step 3: Got ${cats?.length || 0} categories`);
+      setDebugInfo([...logs]);
+      setCategories(cats || []);
+      
+      logs.push('Step 4: Setting chapter count...');
+      setChapterCount(7);
+      
+      logs.push('✅ Hub loaded successfully!');
+      setDebugInfo([...logs]);
     } catch (error) {
-      console.error('Error loading hub:', error);
-      // Set defaults on error
+      logs.push(`❌ ERROR: ${error.message}`);
+      logs.push(`Stack: ${error.stack}`);
+      setDebugInfo([...logs]);
+      setErrorBanner(`ERROR: ${error.message}`);
       setCategories([]);
       setChapterCount(0);
     }
@@ -43,6 +55,22 @@ export default function GameHub({ onSelectGame, onSettings, userName }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 text-white">
+      {/* Debug Banner */}
+      {debugInfo.length > 0 && (
+        <div className="bg-yellow-500 text-black p-4 text-xs font-mono overflow-auto max-h-40">
+          {debugInfo.map((log, i) => (
+            <div key={i}>{log}</div>
+          ))}
+        </div>
+      )}
+      
+      {/* Error Banner */}
+      {errorBanner && (
+        <div className="bg-red-600 text-white p-4 text-center font-bold text-lg">
+          {errorBanner}
+        </div>
+      )}
+      
       {/* Header */}
       <div className="bg-black/30 backdrop-blur-sm border-b border-white/10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
