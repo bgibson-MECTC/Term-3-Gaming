@@ -23,7 +23,8 @@ import {
   Stethoscope,
   Hospital,
   Pill,
-  Calculator
+  Calculator,
+  CreditCard
 } from 'lucide-react';
 
 import { gamesConfig } from '../config/gamesRegistry';
@@ -48,7 +49,8 @@ const ICON_MAP = {
   'Stethoscope': Stethoscope,
   'Hospital': Hospital,
   'Pill': Pill,
-  'Calculator': Calculator
+  'Calculator': Calculator,
+  'CreditCard': CreditCard
 };
 
 /**

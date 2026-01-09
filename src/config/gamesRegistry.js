@@ -15,6 +15,17 @@ export const gamesConfig = {
       supportsDynamicChapters: true
     },
     {
+      id: "flashcards",
+      title: "Flashcard Study",
+      description: "Flip cards with spaced repetition - mark as Know It, Review, or Learning",
+      icon: "CreditCard",
+      category: "study",
+      color: "from-indigo-500 to-purple-600",
+      enabled: true,
+      modes: ["flashcard"],
+      supportsDynamicChapters: true
+    },
+    {
       id: "day-to-be-wrong",
       title: "A Day to be Wrong",
       description: "Clinical judgment - choose the least dangerous wrong answer",
