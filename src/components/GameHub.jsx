@@ -11,41 +11,47 @@ import { getChapterMetadata } from '../utils/chapterManager';
  */
 export default function GameHub({ onSelectGame, onSettings, userName }) {
   const [categories, setCategories] = useState([]);
+  const [games, setGames] = useState([]);
   const [chapterCount, setChapterCount] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [debugInfo, setDebugInfo] = useState([]);
-  const [errorBanner, setErrorBanner] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     loadHub();
   }, []);
 
   const loadHub = async () => {
-    const logs = [];
     try {
-      logs.push('Step 1: Starting hub load...');
-      setDebugInfo([...logs]);
+      setLoading(true);
       
-      logs.push('Step 2: Loading categories...');
-      setDebugInfo([...logs]);
-      const cats = getCategories();
+      // Import game registry functions
+      const { getCategories: getCats, getAllGames, getGamesByCategory } = await import('../utils/gameRegistry');
       
-      logs.push(`Step 3: Got ${cats?.length || 0} categories`);
-      setDebugInfo([...logs]);
-      setCategories(cats || []);
+      // Load categories
+      const cats = getCats();
       
-      logs.push('Step 4: Setting chapter count...');
-      setChapterCount(7);
+      // Add games to each category
+      const categoriesWithGames = (cats || []).map(cat => ({
+        ...cat,
+        games: getGamesByCategory(cat.id)
+      }));
       
-      logs.push('✅ Hub loaded successfully!');
-      setDebugInfo([...logs]);
-    } catch (error) {
-      logs.push(`❌ ERROR: ${error.message}`);
-      logs.push(`Stack: ${error.stack}`);
-      setDebugInfo([...logs]);
-      setErrorBanner(`ERROR: ${error.message}`);
-      setCategories([]);
-      setChapterCount(0);
+      setCategories(categoriesWithGames);
+      
+      // Get all games for filtering
+      const allGames = getAllGames();
+      setGames(allGames || []);
+      
+      // Get chapter metadata
+      const chapters = getChapterMetadata();
+      setChapterCount(chapters?.length || 0);
+      
+      setLoading(false);
+    } catch (err) {
+      console.error('Error loading hub:', err);
+      setError(err.message);
+      setLoading(false);
     }
   };
 
@@ -53,24 +59,40 @@ export default function GameHub({ onSelectGame, onSettings, userName }) {
     onSelectGame(game);
   };
 
+  const filteredGames = selectedCategory
+    ? games.filter(g => g.category === selectedCategory)
+    : games;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-white border-t-transparent mb-4"></div>
+          <p className="text-xl">Loading Hub...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-900 via-purple-900 to-pink-900 text-white flex items-center justify-center p-6">
+        <div className="max-w-2xl bg-red-800/50 backdrop-blur p-8 rounded-lg">
+          <h1 className="text-3xl font-bold mb-4">⚠️ Error Loading Hub</h1>
+          <p className="mb-4 text-lg">{error}</p>
+          <button 
+            onClick={loadHub}
+            className="px-6 py-3 bg-white text-red-900 rounded-lg hover:bg-gray-100 font-semibold"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 text-white">
-      {/* Debug Banner */}
-      {debugInfo.length > 0 && (
-        <div className="bg-yellow-500 text-black p-4 text-xs font-mono overflow-auto max-h-40">
-          {debugInfo.map((log, i) => (
-            <div key={i}>{log}</div>
-          ))}
-        </div>
-      )}
-      
-      {/* Error Banner */}
-      {errorBanner && (
-        <div className="bg-red-600 text-white p-4 text-center font-bold text-lg">
-          {errorBanner}
-        </div>
-      )}
-      
       {/* Header */}
       <div className="bg-black/30 backdrop-blur-sm border-b border-white/10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">

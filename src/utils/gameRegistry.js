@@ -112,6 +112,16 @@ export function getGameConfig(gameId) {
 }
 
 /**
+ * Get all games with their full config
+ */
+export function getAllGames() {
+  return gamesConfig.games.map(game => ({
+    ...game,
+    IconComponent: getIcon(game.icon)
+  }));
+}
+
+/**
  * Check if game supports dynamic chapters
  */
 export function supportsDynamicChapters(gameId) {
@@ -121,6 +131,7 @@ export function supportsDynamicChapters(gameId) {
 
 export default {
   getAvailableGames,
+  getAllGames,
   getGamesByCategory,
   getCategories,
   getGameConfig,
