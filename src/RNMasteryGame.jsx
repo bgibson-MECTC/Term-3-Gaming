@@ -7,6 +7,14 @@ import { signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "fi
 // Import Firebase config
 import { db, auth } from './firebase';
 
+// Import question data bridge (replaces INITIAL_DATA)
+import { 
+  initializeQuestions, 
+  getAllChapters, 
+  getChapterWithQuestions,
+  getQuestionStats 
+} from './utils/questionBridge';
+
 // Import tag overlay system and modes engine
 import { enrichQuestions, getExamTip } from './questionTags/index';
 import { MODES, getPool } from './modes';
@@ -55,7 +63,11 @@ if (typeof window !== 'undefined' && typeof window.__app_id !== 'undefined') {
 }
 
 // --- DATA ---
-const INITIAL_DATA = [
+// Note: INITIAL_DATA has been migrated to JSON files in /data/ folder
+// Questions are now loaded via questionBridge utility
+// See: src/utils/questionBridge.js and data/ folder
+
+const LEGACY_DATA = [
   {
     id: 'ch18',
     title: 'Ch 18: Immune Assessment',
@@ -1654,7 +1666,7 @@ export default function RNMasteryGame() {
 
   const startRemediation = (concept) => {
     // Gather all questions across all chapters that match this concept
-    const allQuestions = [...INITIAL_DATA, ...customChapters]
+    const allQuestions = [...LEGACY_DATA, ...customChapters]
       .flatMap(chapter => enrichQuestions(chapter.questions || []))
       .filter(q => q.concept === concept);
     
@@ -1695,17 +1707,28 @@ export default function RNMasteryGame() {
   };
 
   const handleAnswer = (optionIndex, confLevel) => {
+    // Safety check: prevent crash if questions array is empty or invalid index
+    if (!questions || questions.length === 0 || currentQuestionIndex >= questions.length) {
+      console.warn('⚠️ handleAnswer called but no valid question available');
+      return;
+    }
+    
+    const q = questions[currentQuestionIndex];
+    if (!q) {
+      console.warn('⚠️ handleAnswer called but question is undefined');
+      return;
+    }
+    
     setSelectedOption(optionIndex);
     setConfidence(confLevel);
     
     // In Ranked Mode with rationale requirement, show rationale selection first
     // UNLESS it's a timeout - in that case, process the answer immediately
-    if (confLevel !== 'TIMEOUT' && gameMode === 'ranked' && questions[currentQuestionIndex].requiresRationale && !showRationaleSelection) {
+    if (confLevel !== 'TIMEOUT' && gameMode === 'ranked' && q.requiresRationale && !showRationaleSelection) {
       setShowRationaleSelection(true);
       return; // Don't process answer yet
     }
     
-    const q = questions[currentQuestionIndex];
     // Handle multi-select questions
     let isCorrect;
     if (q.isMultiSelect && Array.isArray(q.correctIndex)) {
@@ -2452,7 +2475,7 @@ Rationale: ${missed.question.rationale}
 
         {/* Chapter Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...INITIAL_DATA, ...customChapters]
+          {[...LEGACY_DATA, ...customChapters]
             .filter(chapter => {
               const chapterId = chapter.id || chapter.chapterId;
               // "A Day to be Wrong" ONLY shows in Ranked Mode, never in Study Mode
@@ -3677,7 +3700,7 @@ Rationale: ${missed.question.rationale}
       }
       
       // Start the actual game
-      const chapter = INITIAL_DATA.find(c => c.id === 'day-to-be-wrong');
+      const chapter = LEGACY_DATA.find(c => c.id === 'day-to-be-wrong');
       const chapterQuestions = enrichQuestions(chapter.questions);
       setActiveChapter(chapter);
       setQuestions(chapterQuestions);
