@@ -169,6 +169,13 @@ export default function FlashcardMode({ onBackToHub }) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 text-white p-4">
         <div className="max-w-6xl mx-auto">
+          {/* Version Banner */}
+          <div className="mb-4 bg-yellow-500/20 border border-yellow-500/50 rounded-xl p-4 text-center">
+            <p className="text-yellow-200 font-semibold">
+              🆕 New Flashcard Mode Available! Press <kbd className="px-2 py-1 bg-white/20 rounded">Ctrl+Shift+R</kbd> (or <kbd className="px-2 py-1 bg-white/20 rounded">Cmd+Shift+R</kbd> on Mac) to refresh and see all chapters
+            </p>
+          </div>
+          
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <button
