@@ -6,14 +6,7 @@
 
 import questionLoader from './questionLoader';
 import { getIcon } from './gameRegistry';
-
-let chaptersConfig;
-try {
-  chaptersConfig = require('../config/chapters.json');
-} catch (error) {
-  console.error('Failed to load chapters config:', error);
-  chaptersConfig = [];
-}
+import { chaptersConfig } from '../config/chaptersConfig';
 
 /**
  * Load all chapters with their questions

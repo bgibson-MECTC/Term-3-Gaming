@@ -26,13 +26,7 @@ import {
   Calculator
 } from 'lucide-react';
 
-let gamesConfig;
-try {
-  gamesConfig = require('../config/games-registry.json');
-} catch (error) {
-  console.error('Failed to load games config:', error);
-  gamesConfig = { games: [], categories: [] };
-}
+import { gamesConfig } from '../config/gamesRegistry';
 
 // Icon mapping for dynamic loading
 const ICON_MAP = {

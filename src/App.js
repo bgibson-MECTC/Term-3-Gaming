@@ -7,7 +7,7 @@ import './index.css';
  * Main App Component - Hub System
  * 
  * Routes between different games/modes based on user selection.
- * Add new games by editing src/config/games-registry.json
+ * Add new games by editing src/config/gamesRegistry.js
  */
 function App() {
   const [currentView, setCurrentView] = useState('hub'); // 'hub' or game id
