@@ -1,0 +1,55 @@
+[
+  {
+    "id": "ch23_example_q01",
+    "text": "A patient with acute MI is being admitted. Which intervention should the nurse prioritize?",
+    "options": [
+      "Obtain 12-lead ECG within 10 minutes",
+      "Administer morphine 2-4mg IV",
+      "Start oxygen at 2L nasal cannula",
+      "Notify the cardiologist"
+    ],
+    "correctIndex": 0,
+    "rationale": "The American Heart Association recommends obtaining a 12-lead ECG within 10 minutes of first medical contact for suspected STEMI. This determines if immediate catheterization is needed.",
+    "tags": {
+      "concept": "Acute Coronary Syndrome",
+      "skill": "Priority",
+      "bloom": "Application"
+    }
+  },
+  {
+    "id": "ch23_example_q02",
+    "type": "SATA",
+    "text": "Which findings would the nurse expect in a patient with left-sided heart failure? (Select all that apply)",
+    "options": [
+      "Crackles in lung bases",
+      "Jugular vein distention",
+      "Dyspnea on exertion",
+      "Peripheral edema",
+      "S3 heart sound"
+    ],
+    "correctIndices": [0, 2, 4],
+    "rationale": "Left-sided HF causes pulmonary congestion (crackles, dyspnea) and S3 gallop. JVD and peripheral edema are signs of right-sided failure.",
+    "tags": {
+      "concept": "Heart Failure",
+      "skill": "Assessment",
+      "bloom": "Analysis"
+    }
+  },
+  {
+    "id": "ch23_example_q03",
+    "text": "A patient reports crushing chest pain radiating to the left arm. Vital signs: BP 160/90, HR 110, RR 24. Which medication should the nurse administer first after ensuring oxygen is applied?",
+    "options": [
+      "Aspirin 325mg PO",
+      "Nitroglycerin 0.4mg SL",
+      "Morphine 2mg IV",
+      "Metoprolol 25mg PO"
+    ],
+    "correctIndex": 0,
+    "rationale": "Aspirin should be given immediately (within minutes) in suspected ACS to inhibit platelet aggregation and reduce mortality. Chewed aspirin acts within 5 minutes. NTG comes after aspirin.",
+    "tags": {
+      "concept": "ACS Management",
+      "skill": "Priority",
+      "bloom": "Application"
+    }
+  }
+]

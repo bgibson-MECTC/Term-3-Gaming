@@ -1,0 +1,35 @@
+[
+  {
+    "id": "ld_q01_mdro_moral_injury",
+    "text": "🩸 COMPETING PRIORITIES: You are charge nurse. ONE negative-pressure room. THREE patients arrive. You must answer: (1) Where do you go FIRST? (2) What gets worse because of it?",
+    "scenario": "**Patient A:** \"Feeling off\" • Recent antibiotic • Some GI symptoms\n\n**Patient B:** ICU transfer • \"Fever\" • History of resistant infection\n\n**Patient C:** Known colonization • Wound actively draining • Roommate with \"low immunity\"\n\n⚠️ NO FULL LABS • NO VITALS • NO DIAGNOSIS CONFIRMATION",
+    "options": [
+      "Patient A",
+      "Patient B",
+      "Patient C",
+      "Try to share the room between patients"
+    ],
+    "correctIndex": 2,
+    "timeLimit": 45,
+    "requiresConsequence": true,
+    "hardMode": true,
+    "evolutionTrigger": true,
+    "penalties": {
+      "wrong": -15,
+      "delayed": -5,
+      "secondaryHarm": -10
+    },
+    "consequences": {
+      "0": "⚠️ **You chose A.** C. diff contained BUT: Immunocompromised patient now colonized with MRSA. Cost: One infection prevented, one created.",
+      "1": "⚠️ **You chose B.** CRE monitored BUT: C. diff now spreading. 3 patients in hallway exposed. Cost: Saved one, infected three.",
+      "2": "✓ **Least dangerous.** Immunocompromised protected BUT: You delayed CRE protocols. Cost: Best choice still has consequences.",
+      "3": "❌ **Unit disaster.** You tried to be fair. Cost: 2 cross-contaminated patients + 3 exposed staff + outbreak investigation."
+    },
+    "rationale": "**Best choice: Patient C** (though still not ideal)\n\n**Why C is least dangerous:**\n- MRSA + draining wound + immunocompromised roommate = HIGH transmission risk\n- Prevents transmission to vulnerable patient\n- Contact precautions can be enforced",
+    "skill": ["CLINICAL_JUDGMENT", "PRIORITY", "INFECTION_CONTROL"],
+    "concept": "RESOURCE_ALLOCATION",
+    "bloom": "EVALUATE",
+    "difficulty": 5,
+    "examTip": "Negative-pressure rooms are for AIRBORNE precautions (TB, measles, varicella). None of these patients technically need it, but you must choose who benefits most from isolation."
+  }
+]
