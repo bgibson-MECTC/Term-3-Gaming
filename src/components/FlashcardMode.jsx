@@ -2,6 +2,19 @@ import React, { useState, useEffect } from 'react';
 import questionLoader from '../utils/questionLoader';
 import { getChapterMetadata } from '../utils/chapterManager';
 
+// Icon name to emoji mapping
+const ICON_EMOJI_MAP = {
+  'Shield': '🛡️',
+  'AlertCircle': '⚠️',
+  'Bone': '🦴',
+  'Bug': '🦠',
+  'Activity': '📊',
+  'Brain': '🧠',
+  'Scale': '⚖️',
+  'Heart': '❤️',
+  'Stethoscope': '🩺'
+};
+
 export default function FlashcardMode({ onBackToHub }) {
   const [screen, setScreen] = useState('chapter-select'); // 'chapter-select', 'flashcard-session', 'summary'
   const [selectedChapter, setSelectedChapter] = useState(null);
@@ -30,6 +43,7 @@ export default function FlashcardMode({ onBackToHub }) {
       
       // Get chapter metadata
       const chapterData = getChapterMetadata();
+      console.log('Loaded chapters:', chapterData); // Debug
       setChapters(chapterData);
       setLoading(false);
     } catch (error) {
@@ -182,20 +196,30 @@ export default function FlashcardMode({ onBackToHub }) {
 
           {/* Chapter Selection */}
           <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6">
-            <h3 className="text-2xl font-bold mb-6">Select Chapter</h3>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {chapters.map(chapter => (
-                <button
-                  key={chapter.id}
-                  onClick={() => startFlashcards(chapter)}
-                  className="p-6 bg-white/5 hover:bg-white/10 border border-white/20 hover:border-white/40 rounded-xl transition-all text-left"
-                >
-                  <div className="text-3xl mb-3">{chapter.icon || '📚'}</div>
-                  <div className="font-bold text-lg mb-2">{chapter.title}</div>
-                  <div className="text-sm text-white/70">{chapter.description}</div>
-                </button>
-              ))}
-            </div>
+            <h3 className="text-2xl font-bold mb-6">Select Chapter ({chapters.length} available)</h3>
+            {chapters.length === 0 ? (
+              <div className="text-center py-12 text-white/60">
+                <p className="text-xl mb-2">No chapters found</p>
+                <p className="text-sm">Try refreshing the page or check console for errors</p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {chapters.map(chapter => {
+                  const emoji = ICON_EMOJI_MAP[chapter.iconName] || '📚';
+                  return (
+                    <button
+                      key={chapter.id}
+                      onClick={() => startFlashcards(chapter)}
+                      className="p-6 bg-white/5 hover:bg-white/10 border border-white/20 hover:border-white/40 rounded-xl transition-all text-left"
+                    >
+                      <div className="text-3xl mb-3">{emoji}</div>
+                      <div className="font-bold text-lg mb-2">{chapter.title}</div>
+                      <div className="text-sm text-white/70">{chapter.description}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>
