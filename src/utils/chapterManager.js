@@ -56,15 +56,23 @@ export async function loadChapter(chapterId) {
  * Get chapter metadata only (no questions)
  */
 export function getChapterMetadata() {
+  console.log('chapterManager: getChapterMetadata called');
+  console.log('chapterManager: chaptersConfig type:', typeof chaptersConfig);
+  console.log('chapterManager: chaptersConfig isArray:', Array.isArray(chaptersConfig));
+  console.log('chapterManager: chaptersConfig value:', chaptersConfig);
+  
   if (!chaptersConfig || !Array.isArray(chaptersConfig)) {
     console.warn('Chapters config not loaded');
     return [];
   }
   
-  return chaptersConfig.map(ch => ({
+  const result = chaptersConfig.map(ch => ({
     ...ch,
     IconComponent: getIcon(ch.iconName)
   }));
+  
+  console.log('chapterManager: Returning chapters:', result);
+  return result;
 }
 
 /**

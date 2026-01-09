@@ -15,6 +15,17 @@ const ICON_EMOJI_MAP = {
   'Stethoscope': '🩺'
 };
 
+// Fallback chapters in case config doesn't load
+const FALLBACK_CHAPTERS = [
+  { id: "ch18", title: "Ch 18: Immune Assessment", description: "Anatomy, function, and assessment.", iconName: "Shield" },
+  { id: "ch19", title: "Ch 19: Immune Disorders", description: "Hypersensitivities & Autoimmunity.", iconName: "AlertCircle" },
+  { id: "ch20", title: "Ch 20: Connective Tissue", description: "RA, Lupus, Gout, Scleroderma.", iconName: "Bone" },
+  { id: "ch21", title: "Ch 21: MDROs", description: "Transmission & Infection Control.", iconName: "Bug" },
+  { id: "ch22", title: "Ch 22: HIV/AIDS", description: "Etiology, Progression, Management.", iconName: "Activity" },
+  { id: "quiz1", title: "Review for Quiz 1", description: "Mixed Review: Chapters 18-22.", iconName: "Brain" },
+  { id: "day-to-be-wrong", title: "⚖️ A Day to be Wrong", description: "🔥🔥🔥🔥🔥 Every answer is wrong - pick the least dangerous", iconName: "Scale" }
+];
+
 export default function FlashcardMode({ onBackToHub }) {
   const [screen, setScreen] = useState('chapter-select'); // 'chapter-select', 'flashcard-session', 'summary'
   const [selectedChapter, setSelectedChapter] = useState(null);
@@ -36,18 +47,32 @@ export default function FlashcardMode({ onBackToHub }) {
     try {
       setLoading(true);
       
+      console.log('FlashcardMode: Starting to load chapters...');
+      
       // Ensure loader is initialized
       if (!questionLoader._initialized) {
+        console.log('FlashcardMode: Initializing question loader...');
         await questionLoader.initialize();
       }
       
       // Get chapter metadata
-      const chapterData = getChapterMetadata();
-      console.log('Loaded chapters:', chapterData); // Debug
+      console.log('FlashcardMode: Getting chapter metadata...');
+      let chapterData = getChapterMetadata();
+      console.log('FlashcardMode: Loaded chapters:', chapterData);
+      console.log('FlashcardMode: Chapter count:', chapterData.length);
+      
+      // Use fallback if no chapters loaded
+      if (!chapterData || chapterData.length === 0) {
+        console.warn('FlashcardMode: No chapters from config, using fallback');
+        chapterData = FALLBACK_CHAPTERS;
+      }
+      
       setChapters(chapterData);
       setLoading(false);
     } catch (error) {
-      console.error('Error loading chapters:', error);
+      console.error('FlashcardMode: Error loading chapters:', error);
+      // Use fallback on error
+      setChapters(FALLBACK_CHAPTERS);
       setLoading(false);
     }
   };
@@ -204,10 +229,19 @@ export default function FlashcardMode({ onBackToHub }) {
           {/* Chapter Selection */}
           <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6">
             <h3 className="text-2xl font-bold mb-6">Select Chapter ({chapters.length} available)</h3>
+            
+            {/* Debug Info */}
+            <div className="mb-4 bg-blue-500/20 border border-blue-500/50 rounded-xl p-4 text-sm">
+              <p className="font-bold mb-2">🔍 Debug Info:</p>
+              <p>Chapters loaded: {chapters.length}</p>
+              <p>Loading state: {loading ? 'true' : 'false'}</p>
+              <p>Chapter data: {JSON.stringify(chapters.map(ch => ch.id))}</p>
+            </div>
+            
             {chapters.length === 0 ? (
               <div className="text-center py-12 text-white/60">
                 <p className="text-xl mb-2">No chapters found</p>
-                <p className="text-sm">Try refreshing the page or check console for errors</p>
+                <p className="text-sm">Debug info shown above</p>
               </div>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
