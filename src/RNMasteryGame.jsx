@@ -1165,23 +1165,15 @@ const LEGACY_DATA = [
         rationale: "Neutrophils are first responders to bacterial infections."
       }
     ]
-  },
-  // CLINICAL JUDGMENT MODULE - "A Day to be Wrong" Classroom Activity
-  {
-    id: 'day-to-be-wrong',
-    title: '⚖️ A Day to be Wrong',
-    icon: <Scale className="w-6 h-6" />,
-    description: '🔥🔥🔥🔥🔥 Every answer is wrong - pick the least dangerous',
-    questions: getClinicalJudgmentQuestions()
   }
 ];
 
-export default function RNMasteryGame({ onBackToHub, initialMode = 'study' }) {
+export default function RNMasteryGame({ onBackToHub, initialMode = 'ranked' }) {
   // Core Game State
   const [gameState, setGameState] = useState('menu'); 
-  const [gameMode, setGameMode] = useState(initialMode); // 'study' or 'ranked'
-  const [studyModeScores, setStudyModeScores] = useState(() => {
-    const saved = localStorage.getItem('rnMasteryStudyScores');
+  const [gameMode, setGameMode] = useState('ranked'); // Always ranked mode
+  const [flashcardCompleted, setFlashcardCompleted] = useState(() => {
+    const saved = localStorage.getItem('rnMasteryFlashcardCompleted');
     return saved ? JSON.parse(saved) : {};
   });
   const [currentPerformance, setCurrentPerformance] = useState(100); // Track current session performance
@@ -1323,14 +1315,11 @@ export default function RNMasteryGame({ onBackToHub, initialMode = 'study' }) {
         const settingsDoc = docSnap.docs.find(d => d.id === 'chapterAccess');
         if (settingsDoc) {
           const firebaseUnlocked = settingsDoc.data().unlocked || [];
-          // Always include 'day-to-be-wrong' regardless of Firebase settings
-          if (!firebaseUnlocked.includes('day-to-be-wrong')) {
-            firebaseUnlocked.push('day-to-be-wrong');
-          }
+          // Firebase unlocked chapters
           setUnlockedChapters(firebaseUnlocked);
         } else {
           // If no settings doc exists, unlock all by default
-          setUnlockedChapters(['ch18', 'ch19', 'ch20', 'ch21', 'ch22', 'quiz1', 'day-to-be-wrong']);
+          setUnlockedChapters(['ch18', 'ch19', 'ch20', 'ch21', 'ch22', 'quiz1']);
         }
       } catch (error) {
         console.error('Error loading chapter locks:', error);
@@ -1433,12 +1422,12 @@ export default function RNMasteryGame({ onBackToHub, initialMode = 'study' }) {
 
   // --- RANK MODE ACCESS CONTROL ---
   const isRankModeUnlocked = (chapterId) => {
-    const chapterScore = studyModeScores[chapterId];
-    return chapterScore && chapterScore.percentage >= 85;
+    // Chapter is unlocked if flashcards have been completed
+    return flashcardCompleted[chapterId] === true;
   };
   
-  const getStudyModePercentage = (chapterId) => {
-    return studyModeScores[chapterId]?.percentage || 0;
+  const hasCompletedFlashcards = (chapterId) => {
+    return flashcardCompleted[chapterId] === true;
   };
 
   // --- CLINICAL REASONING SCORE CALCULATION ---
@@ -1563,12 +1552,12 @@ export default function RNMasteryGame({ onBackToHub, initialMode = 'study' }) {
       return;
     }
     
-    // Check Rank Mode access
+    // Check if flashcards have been completed for this chapter
     if (gameMode === 'ranked' && !isRankModeUnlocked(chapterId)) {
-      const currentScore = getStudyModePercentage(chapterId);
-      alert(`🔒 Rank Mode Locked\n\nYou need 85% in Study Mode to unlock Rank Mode.\n\nCurrent Study Mode score: ${currentScore}%\n\nComplete Study Mode first to demonstrate mastery!`);
+      alert(`🔒 Flashcard Review Required\n\nPlease complete the Flashcard Study mode for this chapter before attempting Ranked Mode.\n\nGo to the Hub → Flashcard Study → ${chapter.title}\n\nThis ensures you're familiar with the content before testing!`);
       return;
     }
+    
     // Get questions directly from the selected chapter
     let chapterQuestions = enrichQuestions(chapter.questions);
     
@@ -2141,9 +2130,8 @@ export default function RNMasteryGame({ onBackToHub, initialMode = 'study' }) {
         setCurrentPerformance(currentPerf);
         
         if (currentPerf < 70 && currentQuestionIndex >= 4) {
-          alert(`⚠️ Performance Alert\n\nYour current Rank Mode score is ${currentPerf}%.\n\nReturning to Study Mode to strengthen your understanding.\n\nCome back when you're ready to score 85%+!`);
+          alert(`⚠️ Performance Alert\n\nYour current Rank Mode score is ${currentPerf}%.\n\nKeep practicing to improve your mastery!`);
           setGameState('menu');
-          setGameMode('study');
           return;
         }
       }
@@ -2173,28 +2161,7 @@ export default function RNMasteryGame({ onBackToHub, initialMode = 'study' }) {
         return;
       }
       
-      // Save Study Mode scores for Rank Mode unlocking
-      if (gameMode === 'study' && activeChapter) {
-        const chapterId = activeChapter.id || activeChapter.chapterId;
-        const newScores = {
-          ...studyModeScores,
-          [chapterId]: {
-            percentage,
-            correctCount,
-            totalQuestions: questions.length,
-            timestamp: new Date().toISOString()
-          }
-        };
-        setStudyModeScores(newScores);
-        localStorage.setItem('rnMasteryStudyScores', JSON.stringify(newScores));
-        
-        // Show unlock message if threshold reached
-        if (percentage >= 85) {
-          setTimeout(() => {
-            alert(`🎉 Rank Mode Unlocked!\n\nYou scored ${percentage}% in Study Mode.\n\nYou can now attempt Rank Mode for this chapter!`);
-          }, 1500);
-        }
-      }
+      // Study mode no longer exists - removed score saving
       
       if (percentage >= 70) {
         confetti({
@@ -2423,28 +2390,11 @@ Rationale: ${missed.question.rationale}
           </h1>
           <p className="text-slate-400 text-xl font-medium">Classroom Edition v5.0</p>
           
-          {/* Mode Toggle */}
-          <div className="flex justify-center mt-6 gap-4">
-            <button 
-              onClick={() => setGameMode('study')} 
-              className={`px-6 py-2 rounded-full font-bold flex items-center transition-all ${
-                gameMode === 'study' 
-                  ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
-                  : 'bg-slate-800 text-slate-400 hover:text-white'
-              }`}
-            >
-              <GraduationCap className="w-4 h-4 mr-2" /> Study Mode
-            </button>
-            <button 
-              onClick={() => setGameMode('ranked')} 
-              className={`px-6 py-2 rounded-full font-bold flex items-center transition-all ${
-                gameMode === 'ranked' 
-                  ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20' 
-                  : 'bg-slate-800 text-slate-400 hover:text-white'
-              }`}
-            >
+          {/* Ranked Mode Only - No Mode Toggle */}
+          <div className="flex justify-center mt-6">
+            <div className="px-6 py-2 rounded-full font-bold flex items-center bg-purple-600 text-white shadow-lg shadow-purple-500/20">
               <Trophy className="w-4 h-4 mr-2" /> Ranked Mode
-            </button>
+            </div>
           </div>
           
           {gameMode === 'ranked' && (
@@ -2498,12 +2448,10 @@ Rationale: ${missed.question.rationale}
             .map(chapter => {
             const chapterId = chapter.id || chapter.chapterId;
             const isCompleted = submittedChapters.includes(chapter.title);
-            // "A Day to be Wrong" is ALWAYS unlocked in Ranked Mode
-            const isChapterLocked = chapterId === 'day-to-be-wrong' ? false : !unlockedChapters.includes(chapterId);
+            const isChapterLocked = !unlockedChapters.includes(chapterId);
             const rankModeUnlocked = isRankModeUnlocked(chapterId);
-            const studyScore = getStudyModePercentage(chapterId);
-            // "A Day to be Wrong" bypasses rank mode unlock requirement
-            const isRankedLocked = chapterId === 'day-to-be-wrong' ? isCompleted : (gameMode === 'ranked' && (!rankModeUnlocked || isCompleted));
+            const flashcardStatus = hasCompletedFlashcards(chapterId);
+            const isRankedLocked = gameMode === 'ranked' && (!rankModeUnlocked || isCompleted);
             const isLocked = isChapterLocked || isRankedLocked;
             
             return (
@@ -2540,15 +2488,13 @@ Rationale: ${missed.question.rationale}
                 <h3 className="font-bold text-lg text-white">{chapter.title}</h3>
                 <div className="text-xs text-slate-400 mt-1">{chapter.questions?.length || 25} Questions</div>
                 
-                {/* Study Mode Score & Rank Mode Status */}
+                {/* Flashcard Completion Status */}
                 {gameMode === 'ranked' && (
                   <div className="mt-2 text-xs">
-                    {chapterId === 'day-to-be-wrong' ? (
-                      <span className="text-cyan-400 font-semibold">🔥 Always Available</span>
-                    ) : rankModeUnlocked ? (
-                      <span className="text-green-400 font-semibold">✓ Unlocked ({studyScore}%)</span>
+                    {flashcardStatus ? (
+                      <span className="text-green-400 font-semibold">✓ Flashcards Reviewed</span>
                     ) : (
-                      <span className="text-yellow-400 font-semibold">🔒 Need 85% ({studyScore}%)</span>
+                      <span className="text-yellow-400 font-semibold">🔒 Complete Flashcards First</span>
                     )}
                   </div>
                 )}

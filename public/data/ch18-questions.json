@@ -1,0 +1,302 @@
+[
+  {
+    "id": "ch18_q01",
+    "text": "The nurse is teaching a group of patients about first-line defense against infection. Which patient statement indicates the need for further education?",
+    "options": [
+      "The skin is a first-line defense.",
+      "A sneeze is a mechanical defense.",
+      "My saliva is a biochemical defense.",
+      "A cut with pus is a mechanical first-line defense."
+    ],
+    "correctIndex": 3,
+    "rationale": "A cut with pus indicates an inflammatory response (second-line defense), not a first-line defense."
+  },
+  {
+    "id": "ch18_q02",
+    "text": "The nurse correlates the function of the thymus gland to which outcome?",
+    "options": [
+      "WBC development",
+      "T-cell development",
+      "Cytokine production",
+      "B-cell production"
+    ],
+    "correctIndex": 1,
+    "rationale": "The thymus gland is the primary site for the maturation and development of T-cells."
+  },
+  {
+    "id": "ch18_q03",
+    "text": "Which type of leukocyte releases heparin as part of the inflammatory response?",
+    "options": [
+      "Basophil",
+      "Eosinophil",
+      "Monocyte",
+      "Neutrophil"
+    ],
+    "correctIndex": 0,
+    "rationale": "Basophils release histamine and heparin during the inflammatory response."
+  },
+  {
+    "id": "ch18_q04",
+    "text": "A nurse is caring for a patient who is experiencing leukocytosis. Which action is most appropriate?",
+    "options": [
+      "Assessing for source of infection",
+      "Assessing for bleeding",
+      "Reverse isolation",
+      "Electric razor use"
+    ],
+    "correctIndex": 0,
+    "rationale": "Leukocytosis (elevated WBC) is a sign of infection. The priority is to find the cause."
+  },
+  {
+    "id": "ch18_q05",
+    "text": "Breastfeeding provides which type of immunity?",
+    "options": [
+      "Natural Active",
+      "Artificial Active",
+      "Natural Passive",
+      "Artificial Passive"
+    ],
+    "correctIndex": 2,
+    "rationale": "Natural Passive Immunity occurs when antibodies are passed from mother to baby (placenta/breastmilk)."
+  },
+  {
+    "id": "ch18_q06",
+    "text": "Which age-related change increases an older adult",
+    "options": [
+      "Thymus involution",
+      "Increased autoantibodies",
+      "Decreased Cytotoxic T-cell surveillance",
+      "Increased vaccine response"
+    ],
+    "correctIndex": 2,
+    "rationale": "Decreased surveillance by Cytotoxic T-cells allows malignant cells to proliferate."
+  },
+  {
+    "id": "ch18_q07",
+    "text": "A",
+    "options": [
+      "Viral infection",
+      "Acute bacterial infection",
+      "Parasitic infection",
+      "Allergy"
+    ],
+    "correctIndex": 1,
+    "rationale": "A"
+  },
+  {
+    "id": "ch18_q08",
+    "text": "Which finding suggests potential immune deficiency?",
+    "options": [
+      "BP 120/80",
+      "Frequent, recurrent infections",
+      "Seasonal allergies",
+      "Mild fatigue"
+    ],
+    "correctIndex": 1,
+    "rationale": "Frequent, severe, or recurrent infections are the hallmark of immune deficiency."
+  },
+  {
+    "id": "ch18_q09",
+    "text": "Which organ filters old blood cells and foreign antigens from the blood?",
+    "options": [
+      "Thymus",
+      "Spleen",
+      "Tonsils",
+      "Bone Marrow"
+    ],
+    "correctIndex": 1,
+    "rationale": "The spleen filters blood and mounts immune responses to blood-borne pathogens."
+  },
+  {
+    "id": "ch18_q10",
+    "text": "Which immunoglobulin crosses the placenta?",
+    "options": [
+      "IgM",
+      "IgA",
+      "IgG",
+      "IgE"
+    ],
+    "correctIndex": 2,
+    "rationale": "IgG is the most abundant and the only Ig that crosses the placenta."
+  },
+  {
+    "id": "ch18_q11",
+    "text": "A hard, fixed, non-tender lymph node suggests:",
+    "options": [
+      "Infection",
+      "Malignancy",
+      "Aging",
+      "Inflammation"
+    ],
+    "correctIndex": 1,
+    "rationale": "Malignant nodes are hard, fixed, and non-tender. Infected nodes are soft and tender."
+  },
+  {
+    "id": "ch18_q12",
+    "text": "Elevated Eosinophils indicate:",
+    "options": [
+      "Bacterial infection",
+      "Viral infection",
+      "Parasitic infection/Allergy",
+      "Autoimmune flare"
+    ],
+    "correctIndex": 2,
+    "rationale": "Eosinophils rise during allergic reactions and parasitic infections."
+  },
+  {
+    "id": "ch18_q13",
+    "text": "Which nutrient is critical for antibody synthesis?",
+    "options": [
+      "Protein",
+      "Carbs",
+      "Fats",
+      "Fiber"
+    ],
+    "correctIndex": 0,
+    "rationale": "Protein is essential for antibody production. Malnutrition compromises immunity."
+  },
+  {
+    "id": "ch18_q14",
+    "text": "Primary function of B-Lymphocytes?",
+    "options": [
+      "Cellular attack",
+      "Phagocytosis",
+      "Humoral immunity (Antibodies)",
+      "Histamine release"
+    ],
+    "correctIndex": 2,
+    "rationale": "B-cells produce antibodies (Humoral Immunity)."
+  },
+  {
+    "id": "ch18_q15",
+    "text": "Inflammation causes which vascular change?",
+    "options": [
+      "Vasoconstriction",
+      "Vasodilation & permeability",
+      "Decreased flow",
+      "Decreased permeability"
+    ],
+    "correctIndex": 1,
+    "rationale": "Vasodilation (heat/redness) and permeability (swelling) allow immune cells to reach the site."
+  },
+  {
+    "id": "ch18_q16",
+    "text": "Natural Killer (NK) cells are part of which immunity?",
+    "options": [
+      "Adaptive",
+      "Innate",
+      "Passive",
+      "Artificial"
+    ],
+    "correctIndex": 1,
+    "rationale": "NK cells provide immediate, non-specific defense as part of innate immunity."
+  },
+  {
+    "id": "ch18_q17",
+    "text": "Which WBC is the",
+    "options": [
+      "Lymphocyte",
+      "Monocyte",
+      "Neutrophil",
+      "Basophil"
+    ],
+    "correctIndex": 2,
+    "rationale": "Neutrophils are the most abundant and first to arrive at infection sites."
+  },
+  {
+    "id": "ch18_q18",
+    "text": "Complement system activation results in:",
+    "options": [
+      "Decreased inflammation",
+      "Pathogen lysis",
+      "Antibody suppression",
+      "WBC destruction"
+    ],
+    "correctIndex": 1,
+    "rationale": "Complement creates membrane attack complexes that lyse pathogens."
+  },
+  {
+    "id": "ch18_q19",
+    "text": "Memory B-cells provide:",
+    "options": [
+      "Immediate response",
+      "Long-term immunity",
+      "Phagocytosis",
+      "Inflammation"
+    ],
+    "correctIndex": 1,
+    "rationale": "Memory cells enable faster, stronger responses upon re-exposure."
+  },
+  {
+    "id": "ch18_q20",
+    "text": "Which finding suggests lymphoma?",
+    "options": [
+      "Painful, mobile nodes",
+      "Painless, fixed lymphadenopathy",
+      "Fever only",
+      "Normal CBC"
+    ],
+    "correctIndex": 1,
+    "rationale": "Painless, fixed nodes that don"
+  },
+  {
+    "id": "ch18_q21",
+    "text": "Neutropenia increases risk for:",
+    "options": [
+      "Bleeding",
+      "Infection",
+      "Allergy",
+      "Clotting"
+    ],
+    "correctIndex": 1,
+    "rationale": "Low neutrophils (<1500) significantly increase infection risk."
+  },
+  {
+    "id": "ch18_q22",
+    "text": "Monocytes differentiate into:",
+    "options": [
+      "Neutrophils",
+      "Macrophages",
+      "T-cells",
+      "Platelets"
+    ],
+    "correctIndex": 1,
+    "rationale": "Monocytes leave blood and become tissue macrophages."
+  },
+  {
+    "id": "ch18_q23",
+    "text": "IgM indicates:",
+    "options": [
+      "Past infection",
+      "Active/recent infection",
+      "Vaccine response",
+      "Allergy"
+    ],
+    "correctIndex": 1,
+    "rationale": "IgM is the first antibody produced during acute infection."
+  },
+  {
+    "id": "ch18_q24",
+    "text": "Interferons are released in response to:",
+    "options": [
+      "Bacteria",
+      "Viruses",
+      "Parasites",
+      "Allergens"
+    ],
+    "correctIndex": 1,
+    "rationale": "Interferons"
+  },
+  {
+    "id": "ch18_q25",
+    "text": "CD4 cells are also called:",
+    "options": [
+      "Killer T-cells",
+      "Helper T-cells",
+      "B-cells",
+      "NK cells"
+    ],
+    "correctIndex": 1,
+    "rationale": "CD4+ T-cells are helper cells that coordinate immune responses."
+  }
+]

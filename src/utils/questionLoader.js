@@ -38,7 +38,8 @@ class QuestionLoader {
 
     try {
       // Load chapter metadata
-      const chaptersResponse = await fetch('/data/chapters.json');
+      const basePath = process.env.PUBLIC_URL || '';
+      const chaptersResponse = await fetch(`${basePath}/data/chapters.json`);
       if (!chaptersResponse.ok) {
         throw new Error(`Failed to load chapters: ${chaptersResponse.statusText}`);
       }
@@ -63,16 +64,17 @@ class QuestionLoader {
    */
   async _loadAllQuestions() {
     // Map of chapter IDs to their JSON files
+    const basePath = process.env.PUBLIC_URL || '';
     const questionFiles = {
-      'ch18': '/data/ch18-questions.json',
-      'ch19': '/data/ch19-questions.json',
-      'ch20': '/data/ch20-questions.json',
-      'ch21': '/data/ch21-questions.json',
-      'ch22': '/data/ch22-questions.json',
-      'quiz1': '/data/quiz1-questions.json',
-      'challenge': '/data/challenge-scenarios.json',
-      'clinical-judgment': '/data/clinical-judgment-scenarios.json',
-      'day-to-be-wrong': '/data/clinical-judgment-scenarios.json' // Same file
+      'ch18': `${basePath}/data/ch18-questions.json`,
+      'ch19': `${basePath}/data/ch19-questions.json`,
+      'ch20': `${basePath}/data/ch20-questions.json`,
+      'ch21': `${basePath}/data/ch21-questions.json`,
+      'ch22': `${basePath}/data/ch22-questions.json`,
+      'quiz1': `${basePath}/data/quiz1-questions.json`,
+      'challenge': `${basePath}/data/challenge-scenarios.json`,
+      'clinical-judgment': `${basePath}/data/clinical-judgment-scenarios.json`,
+      'day-to-be-wrong': `${basePath}/data/clinical-judgment-scenarios.json` // Same file
     };
 
     // Load each question file

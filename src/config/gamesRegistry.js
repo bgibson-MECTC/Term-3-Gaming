@@ -26,16 +26,15 @@ export const gamesConfig = {
       supportsDynamicChapters: true
     },
     {
-      id: "day-to-be-wrong",
-      title: "A Day to be Wrong",
-      description: "Clinical judgment - choose the least dangerous wrong answer",
-      icon: "Scale",
+      id: "clinical-rounds",
+      title: "Clinical Rounds",
+      description: "Manage patients through a nursing shift with EHR charts and SBAR handoffs",
+      icon: "Stethoscope",
       category: "clinical-judgment",
-      color: "from-purple-500 to-pink-600",
+      color: "from-cyan-500 to-blue-600",
       enabled: true,
-      modes: ["ranked"],
-      supportsDynamicChapters: false,
-      specialMode: true
+      modes: ["simulation"],
+      supportsDynamicChapters: false
     },
     {
       id: "challenge-mode",

@@ -38,10 +38,5 @@ export const chaptersConfig = [
     description: "Mixed Review: Chapters 18-22.",
     iconName: "Brain"
   },
-  {
-    id: "day-to-be-wrong",
-    title: "⚖️ A Day to be Wrong",
-    description: "🔥🔥🔥🔥🔥 Every answer is wrong - pick the least dangerous",
-    iconName: "Scale"
-  }
+
 ];

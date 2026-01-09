@@ -1,0 +1,302 @@
+[
+  {
+    "id": "ch22_q01",
+    "text": "Correct HIV progression?",
+    "options": [
+      "Acute->AIDS",
+      "Viral transmission -> Seroconversion -> Acute -> Chronic -> AIDS",
+      "AIDS first",
+      "Transmission->AIDS"
+    ],
+    "correctIndex": 1,
+    "rationale": "Transmission > Antibodies > Acute Sx > Latency > AIDS."
+  },
+  {
+    "id": "ch22_q02",
+    "text": "Sign of deterioration in HIV?",
+    "options": [
+      "Undetectable load",
+      "Weight loss >10%",
+      "Night sweats",
+      "CD4 600"
+    ],
+    "correctIndex": 1,
+    "rationale": "Wasting syndrome (>10% loss) indicates progression."
+  },
+  {
+    "id": "ch22_q03",
+    "text": "PrEP is:",
+    "options": [
+      "Vaccine",
+      "Daily med to prevent HIV",
+      "After sex",
+      "Cure"
+    ],
+    "correctIndex": 1,
+    "rationale": "Pre-Exposure Prophylaxis prevents acquisition."
+  },
+  {
+    "id": "ch22_q04",
+    "text": "CD4 count of 180 indicates:",
+    "options": [
+      "Acute HIV",
+      "AIDS",
+      "Adherence",
+      "Normal"
+    ],
+    "correctIndex": 1,
+    "rationale": "AIDS < 200 CD4 cells."
+  },
+  {
+    "id": "ch22_q05",
+    "text": "Opportunistic Infection (OI) in AIDS?",
+    "options": [
+      "Strep",
+      "PCP Pneumonia",
+      "Flu",
+      "Eczema"
+    ],
+    "correctIndex": 1,
+    "rationale": "PCP is a classic OI."
+  },
+  {
+    "id": "ch22_q06",
+    "text": "Goal of ART?",
+    "options": [
+      "Cure",
+      "Undetectable viral load",
+      "Increase virus",
+      "Decrease CD4"
+    ],
+    "correctIndex": 1,
+    "rationale": "Suppress virus to undetectable levels."
+  },
+  {
+    "id": "ch22_q07",
+    "text": "Kaposi",
+    "options": [
+      "Purple/red skin lesions",
+      "White patches",
+      "Diarrhea",
+      "Blindness"
+    ],
+    "correctIndex": 0,
+    "rationale": "Cancer of blood vessels causing purple lesions."
+  },
+  {
+    "id": "ch22_q08",
+    "text": "Needle stick priority?",
+    "options": [
+      "Wait",
+      "PEP within 72h",
+      "Antibiotics",
+      "Retire"
+    ],
+    "correctIndex": 1,
+    "rationale": "Post-Exposure Prophylaxis ASAP (max 72h)."
+  },
+  {
+    "id": "ch22_q09",
+    "text": "Undetectable viral load means:",
+    "options": [
+      "Cured",
+      "Gone",
+      "Untransmittable (U=U)",
+      "Stop meds"
+    ],
+    "correctIndex": 2,
+    "rationale": "Cannot transmit sexually, but must keep taking meds."
+  },
+  {
+    "id": "ch22_q10",
+    "text": "Oral Thrush presents as:",
+    "options": [
+      "Blisters",
+      "Creamy white patches",
+      "Bleeding",
+      "Taste loss"
+    ],
+    "correctIndex": 1,
+    "rationale": "Fungal infection, white patches."
+  },
+  {
+    "id": "ch22_q11",
+    "text": "HIV Screening/Confirmation test?",
+    "options": [
+      "CBC",
+      "CXR",
+      "4th Gen Antigen/Antibody",
+      "UA"
+    ],
+    "correctIndex": 2,
+    "rationale": "Detects p24 antigen and antibodies early."
+  },
+  {
+    "id": "ch22_q12",
+    "text": "IRIS is:",
+    "options": [
+      "Collapse",
+      "Immune recovery causing inflammation",
+      "Stop meds",
+      "Mutation"
+    ],
+    "correctIndex": 1,
+    "rationale": "Recovering immune system attacks old infections."
+  },
+  {
+    "id": "ch22_q13",
+    "text": "Vertical Transmission:",
+    "options": [
+      "Sex",
+      "Needles",
+      "Mother-to-child",
+      "Blood"
+    ],
+    "correctIndex": 2,
+    "rationale": "Perinatal transmission."
+  },
+  {
+    "id": "ch22_q14",
+    "text": "ART Adherence requirement:",
+    "options": [
+      "When sick",
+      "95%+",
+      "Double dose",
+      "Stop if side effects"
+    ],
+    "correctIndex": 1,
+    "rationale": "Strict adherence prevents resistance."
+  },
+  {
+    "id": "ch22_q15",
+    "text": "TB in HIV:",
+    "options": [
+      "Rare",
+      "Leading cause of death",
+      "Untreatable",
+      "No isolation"
+    ],
+    "correctIndex": 1,
+    "rationale": "Major coinfection and killer."
+  },
+  {
+    "id": "ch22_q16",
+    "text": "Window period for HIV testing refers to:",
+    "options": [
+      "Treatment duration",
+      "Time between infection and detectable antibodies",
+      "CD4 recovery time",
+      "Viral load doubling time"
+    ],
+    "correctIndex": 1,
+    "rationale": "It takes 2-12 weeks for antibodies to develop; tests may be negative during this time."
+  },
+  {
+    "id": "ch22_q17",
+    "text": "Common side effect of Efavirenz (NNRTI)?",
+    "options": [
+      "Weight gain",
+      "Vivid dreams/CNS effects",
+      "Hair loss",
+      "Diarrhea"
+    ],
+    "correctIndex": 1,
+    "rationale": "Efavirenz commonly causes neuropsychiatric side effects including vivid dreams."
+  },
+  {
+    "id": "ch22_q18",
+    "text": "PrEP (Pre-Exposure Prophylaxis) is for:",
+    "options": [
+      "Treating HIV infection",
+      "Preventing HIV in high-risk individuals",
+      "Curing AIDS",
+      "Treating opportunistic infections"
+    ],
+    "correctIndex": 1,
+    "rationale": "PrEP (Truvada/Descovy) reduces HIV acquisition risk by >90% when taken consistently."
+  },
+  {
+    "id": "ch22_q19",
+    "text": "CD4 count indicating severe immunosuppression/AIDS?",
+    "options": [
+      ">500",
+      "350-500",
+      "200-350",
+      "<200"
+    ],
+    "correctIndex": 3,
+    "rationale": "CD4 <200 defines AIDS and dramatically increases opportunistic infection risk."
+  },
+  {
+    "id": "ch22_q20",
+    "text": "Cryptococcal meningitis in AIDS patients presents with:",
+    "options": [
+      "Rash",
+      "Severe headache & altered mental status",
+      "Cough",
+      "Diarrhea"
+    ],
+    "correctIndex": 1,
+    "rationale": "Fungal meningitis causes headache, fever, and neurological changes."
+  },
+  {
+    "id": "ch22_q21",
+    "text": "Adherence requirement for ART effectiveness?",
+    "options": [
+      "50%",
+      "75%",
+      ">95%",
+      "Take when sick"
+    ],
+    "correctIndex": 2,
+    "rationale": "Strict adherence >95% prevents resistance and maintains viral suppression."
+  },
+  {
+    "id": "ch22_q22",
+    "text": "Wasting syndrome (HIV-associated) is defined as:",
+    "options": [
+      "Weight gain",
+      ">10% unintentional weight loss",
+      "Increased muscle mass",
+      "Fluid retention"
+    ],
+    "correctIndex": 1,
+    "rationale": "AIDS wasting involves severe involuntary weight loss with muscle depletion."
+  },
+  {
+    "id": "ch22_q23",
+    "text": "Integrase inhibitor example?",
+    "options": [
+      "Raltegravir",
+      "Efavirenz",
+      "Lamivudine",
+      "Ritonavir"
+    ],
+    "correctIndex": 0,
+    "rationale": "Raltegravir (Isentress) blocks HIV integration into host DNA."
+  },
+  {
+    "id": "ch22_q24",
+    "text": "Patient education about ART resistance?",
+    "options": [
+      "Missing doses has no effect",
+      "Resistance develops with inconsistent use",
+      "Double dose if missed",
+      "Stop meds if feeling better"
+    ],
+    "correctIndex": 1,
+    "rationale": "Inconsistent dosing allows viral replication and mutation to resistant strains."
+  },
+  {
+    "id": "ch22_q25",
+    "text": "Legal requirement for HIV status disclosure?",
+    "options": [
+      "Must tell everyone",
+      "Varies by state; often required to inform sexual partners",
+      "Never required",
+      "Only employers need to know"
+    ],
+    "correctIndex": 1,
+    "rationale": "Laws vary; many states criminalize non-disclosure to sexual partners."
+  }
+]

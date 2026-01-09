@@ -1,0 +1,302 @@
+[
+  {
+    "id": "ch21_q01",
+    "text": "Contact Transmission involves:",
+    "options": [
+      "Insect bite",
+      "Direct/Indirect contact",
+      "Airborne particles",
+      "Ingestion"
+    ],
+    "correctIndex": 1,
+    "rationale": "Direct contact or contact with contaminated surfaces."
+  },
+  {
+    "id": "ch21_q02",
+    "text": "Vector-Borne Transmission involves:",
+    "options": [
+      "Insects (ticks/mosquitoes)",
+      "Direct contact",
+      "Breathing",
+      "Food"
+    ],
+    "correctIndex": 0,
+    "rationale": "Vectors are living organisms (insects) that transmit disease."
+  },
+  {
+    "id": "ch21_q03",
+    "text": "Airborne Transmission involves:",
+    "options": [
+      "Doorknobs",
+      "Breathing small suspended particles",
+      "Food",
+      "Droplets >5 microns"
+    ],
+    "correctIndex": 1,
+    "rationale": "Airborne pathogens remain suspended in air for long periods."
+  },
+  {
+    "id": "ch21_q04",
+    "text": "Common MDRO requiring Contact Precautions?",
+    "options": [
+      "Strep",
+      "MRSA",
+      "Flu",
+      "Shingles"
+    ],
+    "correctIndex": 1,
+    "rationale": "MRSA is a resistant organism spread by contact."
+  },
+  {
+    "id": "ch21_q05",
+    "text": "Priority for C. diff?",
+    "options": [
+      "Mask",
+      "Soap & Water hand wash",
+      "Negative pressure",
+      "Open door"
+    ],
+    "correctIndex": 1,
+    "rationale": "Alcohol does not kill C. diff spores; mechanical washing is required."
+  },
+  {
+    "id": "ch21_q06",
+    "text": "VRE is spread via:",
+    "options": [
+      "Contact",
+      "Airborne",
+      "Water",
+      "Mosquitoes"
+    ],
+    "correctIndex": 0,
+    "rationale": "VRE survives on surfaces/hands; spread by contact."
+  },
+  {
+    "id": "ch21_q07",
+    "text": "Highest risk for MDRO?",
+    "options": [
+      "Broken arm",
+      "ICU with central line/antibiotics",
+      "Cold",
+      "Outpatient"
+    ],
+    "correctIndex": 1,
+    "rationale": "Invasive devices and antibiotic use increase MDRO risk."
+  },
+  {
+    "id": "ch21_q08",
+    "text": "Acinetobacter baumannii is associated with:",
+    "options": [
+      "Food",
+      "VAP/Wound infections in ICU",
+      "Sore throat",
+      "Ticks"
+    ],
+    "correctIndex": 1,
+    "rationale": "Opportunistic pathogen common in ICUs/ventilators."
+  },
+  {
+    "id": "ch21_q09",
+    "text": "Antibiotic Stewardship means:",
+    "options": [
+      "Antibiotics for all",
+      "Right drug/dose/duration",
+      "Creating drugs",
+      "No antibiotics"
+    ],
+    "correctIndex": 1,
+    "rationale": "Optimizing use to prevent resistance."
+  },
+  {
+    "id": "ch21_q10",
+    "text": "Donning PPE order?",
+    "options": [
+      "Gloves first",
+      "Gown -> Gloves",
+      "Mask -> Gloves",
+      "Gloves -> Mask"
+    ],
+    "correctIndex": 1,
+    "rationale": "Gown first, then gloves over cuffs."
+  },
+  {
+    "id": "ch21_q11",
+    "text": "Most contaminated PPE item (remove first)?",
+    "options": [
+      "Mask",
+      "Gown",
+      "Gloves",
+      "Goggles"
+    ],
+    "correctIndex": 2,
+    "rationale": "Gloves are most contaminated."
+  },
+  {
+    "id": "ch21_q12",
+    "text": "CRE are dangerous because:",
+    "options": [
+      "Viral",
+      "Resistant to carbapenems",
+      "Affect kids",
+      "Waterborne"
+    ],
+    "correctIndex": 1,
+    "rationale": "Resistant to last-resort antibiotics."
+  },
+  {
+    "id": "ch21_q13",
+    "text": "Cohort isolation involves:",
+    "options": [
+      "Same organism roommates",
+      "Any roommate",
+      "Home",
+      "Negative pressure"
+    ],
+    "correctIndex": 0,
+    "rationale": "Patients with the SAME active infection can share a room."
+  },
+  {
+    "id": "ch21_q14",
+    "text": "Best way to break transmission?",
+    "options": [
+      "Diagnosis",
+      "Hand Hygiene",
+      "Nutrition",
+      "Vaccines"
+    ],
+    "correctIndex": 1,
+    "rationale": "Hand hygiene is #1 for preventing spread."
+  },
+  {
+    "id": "ch21_q15",
+    "text": "Standard Precautions apply to:",
+    "options": [
+      "Infected only",
+      "HIV only",
+      "All patients",
+      "Surgical only"
+    ],
+    "correctIndex": 2,
+    "rationale": "Universal standard for all patients."
+  },
+  {
+    "id": "ch21_q16",
+    "text": "Transmission-based precaution for active TB?",
+    "options": [
+      "Contact",
+      "Droplet",
+      "Airborne",
+      "Standard only"
+    ],
+    "correctIndex": 2,
+    "rationale": "TB requires airborne precautions with N95 respirator."
+  },
+  {
+    "id": "ch21_q17",
+    "text": "PPE removal (doffing) order?",
+    "options": [
+      "Mask first",
+      "Gloves -> Gown -> Mask -> Goggles",
+      "Gown first",
+      "Goggles first"
+    ],
+    "correctIndex": 1,
+    "rationale": "Remove most contaminated items first (gloves) before touching face."
+  },
+  {
+    "id": "ch21_q18",
+    "text": "Type of precaution for Influenza?",
+    "options": [
+      "Contact",
+      "Airborne",
+      "Droplet",
+      "Protective environment"
+    ],
+    "correctIndex": 2,
+    "rationale": "Influenza spreads via large droplets; requires surgical mask."
+  },
+  {
+    "id": "ch21_q19",
+    "text": "ESBL organisms are resistant to:",
+    "options": [
+      "All antibiotics",
+      "Beta-lactam antibiotics",
+      "Antifungals",
+      "Antivirals"
+    ],
+    "correctIndex": 1,
+    "rationale": "Extended-spectrum beta-lactamase breaks down penicillins and cephalosporins."
+  },
+  {
+    "id": "ch21_q20",
+    "text": "Contact precautions require:",
+    "options": [
+      "N95 mask",
+      "Gown and gloves",
+      "Negative pressure room",
+      "PAPR"
+    ],
+    "correctIndex": 1,
+    "rationale": "Gown and gloves prevent transmission via direct contact."
+  },
+  {
+    "id": "ch21_q21",
+    "text": "CRE stands for:",
+    "options": [
+      "Carbapenem-Resistant Enterobacteriaceae",
+      "Common Respiratory Enterococcus",
+      "Chronic Renal Encephalopathy",
+      "Continuous Renal Excretion"
+    ],
+    "correctIndex": 0,
+    "rationale": "CRE are"
+  },
+  {
+    "id": "ch21_q22",
+    "text": "Negative pressure room is required for:",
+    "options": [
+      "MRSA",
+      "C. diff",
+      "Tuberculosis",
+      "VRE"
+    ],
+    "correctIndex": 2,
+    "rationale": "Negative pressure prevents airborne particles from escaping the room."
+  },
+  {
+    "id": "ch21_q23",
+    "text": "Priority action if exposed to blood/bodily fluids?",
+    "options": [
+      "Document later",
+      "Wash area immediately & report",
+      "Continue working",
+      "Wait until end of shift"
+    ],
+    "correctIndex": 1,
+    "rationale": "Immediate washing and reporting enables timely post-exposure prophylaxis."
+  },
+  {
+    "id": "ch21_q24",
+    "text": "MDROs develop resistance primarily due to:",
+    "options": [
+      "Proper antibiotic use",
+      "Overuse and misuse of antibiotics",
+      "Handwashing",
+      "Vaccination"
+    ],
+    "correctIndex": 1,
+    "rationale": "Inappropriate antibiotic use drives selection of resistant strains."
+  },
+  {
+    "id": "ch21_q25",
+    "text": "Which patient requires protective environment (reverse isolation)?",
+    "options": [
+      "MRSA infection",
+      "Neutropenic cancer patient",
+      "Diabetic",
+      "Post-op day 1"
+    ],
+    "correctIndex": 1,
+    "rationale": "Immunocompromised patients need protection from environmental pathogens."
+  }
+]

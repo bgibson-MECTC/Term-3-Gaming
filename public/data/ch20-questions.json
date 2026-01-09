@@ -1,0 +1,302 @@
+[
+  {
+    "id": "ch20_q01",
+    "text": "Highest risk for Osteoarthritis (OA)?",
+    "options": [
+      "40yo admin",
+      "45yo construction",
+      "55yo obese female machinist",
+      "60yo accountant"
+    ],
+    "correctIndex": 2,
+    "rationale": "Risk factors: Age >55, Female, Obesity, Repetitive motion."
+  },
+  {
+    "id": "ch20_q02",
+    "text": "Non-pharm therapy for Lupus?",
+    "options": [
+      "Avoid sun/Use sunscreen",
+      "Increase sun",
+      "Limit fluids",
+      "High protein only"
+    ],
+    "correctIndex": 0,
+    "rationale": "Sun exposure triggers SLE flares (photosensitivity)."
+  },
+  {
+    "id": "ch20_q03",
+    "text": "Finding associated with RA (not OA)?",
+    "options": [
+      "Asymmetrical pain",
+      "Heberdens nodes",
+      "Symmetrical pain/Morning stiffness >1hr",
+      "Crepitus"
+    ],
+    "correctIndex": 2,
+    "rationale": "RA is systemic, symmetrical, and causes prolonged morning stiffness."
+  },
+  {
+    "id": "ch20_q04",
+    "text": "Medication for ACUTE Gout flare?",
+    "options": [
+      "Allopurinol",
+      "Colchicine",
+      "Febuxostat",
+      "Methotrexate"
+    ],
+    "correctIndex": 1,
+    "rationale": "Colchicine treats acute inflammation. Allopurinol prevents future attacks."
+  },
+  {
+    "id": "ch20_q05",
+    "text": "In CREST syndrome,",
+    "options": [
+      "Rash",
+      "Raynauds Phenomenon",
+      "Renal",
+      "Rigidity"
+    ],
+    "correctIndex": 1,
+    "rationale": "Calcinosis, Raynaud"
+  },
+  {
+    "id": "ch20_q06",
+    "text": "Dietary modification for Gout?",
+    "options": [
+      "High protein",
+      "Low purine (no organ meat/alcohol)",
+      "Gluten-free",
+      "Fluid restriction"
+    ],
+    "correctIndex": 1,
+    "rationale": "Purines break down into uric acid, which causes Gout."
+  },
+  {
+    "id": "ch20_q07",
+    "text": "Adverse effect of Methotrexate?",
+    "options": [
+      "Weight gain",
+      "Bone marrow suppression",
+      "Insomnia",
+      "Hyperactivity"
+    ],
+    "correctIndex": 1,
+    "rationale": "Methotrexate causes immunosuppression/bone marrow suppression."
+  },
+  {
+    "id": "ch20_q08",
+    "text": "Heberden",
+    "options": [
+      "RA",
+      "Osteoarthritis",
+      "Gout",
+      "Lupus"
+    ],
+    "correctIndex": 1,
+    "rationale": "Bony overgrowths on distal joints (Heberden"
+  },
+  {
+    "id": "ch20_q09",
+    "text": "Fibromyalgia involves:",
+    "options": [
+      "Inflammation",
+      "Autoimmunity",
+      "Central sensitization/Amplified pain",
+      "Uric acid"
+    ],
+    "correctIndex": 2,
+    "rationale": "Fibromyalgia is a non-inflammatory chronic pain syndrome."
+  },
+  {
+    "id": "ch20_q10",
+    "text": "Hallmark of Sjögren",
+    "options": [
+      "Dry eyes/mouth",
+      "Weakness",
+      "Kidney stones",
+      "Tremors"
+    ],
+    "correctIndex": 0,
+    "rationale": "Sjögren"
+  },
+  {
+    "id": "ch20_q11",
+    "text": "Specific lab for SLE (Lupus)?",
+    "options": [
+      "RF",
+      "Anti-dsDNA",
+      "Uric Acid",
+      "CRP"
+    ],
+    "correctIndex": 1,
+    "rationale": "Anti-dsDNA and Anti-Smith are highly specific for Lupus."
+  },
+  {
+    "id": "ch20_q12",
+    "text": "Scleroderma patient with swallowing difficulty?",
+    "options": [
+      "Esophageal dysfunction",
+      "Infection",
+      "Anxiety",
+      "Side effect"
+    ],
+    "correctIndex": 0,
+    "rationale": "Esophageal hardening causes dysphagia (CREST)."
+  },
+  {
+    "id": "ch20_q13",
+    "text": "Best exercise for knee OA?",
+    "options": [
+      "Jogging",
+      "Heavy weights",
+      "Swimming/Water aerobics",
+      "Bed rest"
+    ],
+    "correctIndex": 2,
+    "rationale": "Low-impact water exercise reduces joint stress."
+  },
+  {
+    "id": "ch20_q14",
+    "text": "Raynaud",
+    "options": [
+      "Warmth",
+      "Cold & Stress",
+      "Water",
+      "Elevation"
+    ],
+    "correctIndex": 1,
+    "rationale": "Cold and stress trigger vasospasm in digits."
+  },
+  {
+    "id": "ch20_q15",
+    "text": "Indication for Arthroplasty (Joint Replacement)?",
+    "options": [
+      "Diagnosis",
+      "Uncontrolled pain/mobility loss",
+      "Age <40",
+      "Cream failure"
+    ],
+    "correctIndex": 1,
+    "rationale": "Surgery is the last resort for severe pain/loss of function."
+  },
+  {
+    "id": "ch20_q16",
+    "text": "First-line DMARD for Rheumatoid Arthritis?",
+    "options": [
+      "Prednisone",
+      "Methotrexate",
+      "Ibuprofen",
+      "Acetaminophen"
+    ],
+    "correctIndex": 1,
+    "rationale": "Methotrexate is the gold standard DMARD to slow RA progression."
+  },
+  {
+    "id": "ch20_q17",
+    "text": "Lab value elevated in Rheumatoid Arthritis?",
+    "options": [
+      "Glucose",
+      "Rheumatoid Factor (RF)",
+      "Hemoglobin",
+      "Sodium"
+    ],
+    "correctIndex": 1,
+    "rationale": "Rheumatoid Factor is an autoantibody present in 70-80% of RA patients."
+  },
+  {
+    "id": "ch20_q18",
+    "text": "Teaching for patient on Methotrexate?",
+    "options": [
+      "Take with grapefruit juice",
+      "Avoid folic acid",
+      "Avoid alcohol",
+      "Double dose if missed"
+    ],
+    "correctIndex": 2,
+    "rationale": "Alcohol increases hepatotoxicity risk with Methotrexate."
+  },
+  {
+    "id": "ch20_q19",
+    "text": "Joint most commonly affected by Gout?",
+    "options": [
+      "Hip",
+      "Shoulder",
+      "Great toe (MTP joint)",
+      "Elbow"
+    ],
+    "correctIndex": 2,
+    "rationale": "Gout classically presents in the first metatarsophalangeal joint (big toe)."
+  },
+  {
+    "id": "ch20_q20",
+    "text": "Complication of untreated Osteoarthritis?",
+    "options": [
+      "Increased flexibility",
+      "Joint deformity & disability",
+      "Hyperglycemia",
+      "Anemia"
+    ],
+    "correctIndex": 1,
+    "rationale": "Progressive cartilage loss leads to deformity and loss of function."
+  },
+  {
+    "id": "ch20_q21",
+    "text": "Medication that can trigger Gout attack?",
+    "options": [
+      "Thiazide diuretics",
+      "Beta blockers",
+      "Calcium channel blockers",
+      "ACE inhibitors"
+    ],
+    "correctIndex": 0,
+    "rationale": "Diuretics increase uric acid levels by reducing renal excretion."
+  },
+  {
+    "id": "ch20_q22",
+    "text": "Lab test to confirm diagnosis of Gout?",
+    "options": [
+      "CBC",
+      "Synovial fluid analysis for urate crystals",
+      "Chest X-ray",
+      "EKG"
+    ],
+    "correctIndex": 1,
+    "rationale": "Needle-shaped urate crystals in joint fluid confirm Gout."
+  },
+  {
+    "id": "ch20_q23",
+    "text": "Expected X-ray finding in Osteoarthritis?",
+    "options": [
+      "Joint space widening",
+      "Joint space narrowing & bone spurs",
+      "Fractures",
+      "Soft tissue swelling only"
+    ],
+    "correctIndex": 1,
+    "rationale": "OA shows decreased joint space and osteophytes (bone spurs)."
+  },
+  {
+    "id": "ch20_q24",
+    "text": "Priority teaching for Lupus patient about pregnancy?",
+    "options": [
+      "Safe to get pregnant anytime",
+      "High-risk; requires specialist care",
+      "Stop all medications",
+      "Avoid prenatal vitamins"
+    ],
+    "correctIndex": 1,
+    "rationale": "SLE pregnancies are high-risk due to flares and complications; need MFM specialist."
+  },
+  {
+    "id": "ch20_q25",
+    "text": "Biologic therapy for severe Rheumatoid Arthritis?",
+    "options": [
+      "Aspirin",
+      "TNF inhibitors (Etanercept)",
+      "Tylenol",
+      "Vitamin D"
+    ],
+    "correctIndex": 1,
+    "rationale": "TNF-alpha inhibitors target specific immune pathways in RA."
+  }
+]

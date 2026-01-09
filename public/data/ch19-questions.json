@@ -1,0 +1,302 @@
+[
+  {
+    "id": "ch19_q01",
+    "text": "Which Ig is a mediator in allergic responses?",
+    "options": [
+      "IgA",
+      "IgD",
+      "IgE",
+      "IgG"
+    ],
+    "correctIndex": 2,
+    "rationale": "IgE binds to mast cells and triggers histamine release in allergies."
+  },
+  {
+    "id": "ch19_q02",
+    "text": "Latex sensitivity is cross-reactive with:",
+    "options": [
+      "Strawberries",
+      "Shellfish",
+      "Bananas/Avocados",
+      "Peanuts"
+    ],
+    "correctIndex": 2,
+    "rationale": "Bananas, avocados, and kiwis share similar proteins with latex."
+  },
+  {
+    "id": "ch19_q03",
+    "text": "Signs of Anaphylaxis (Type I) include:",
+    "options": [
+      "Delayed rash",
+      "Jaundice",
+      "Stridor, wheezing, hypotension",
+      "Joint pain"
+    ],
+    "correctIndex": 2,
+    "rationale": "Stridor and hypotension indicate life-threatening airway constriction and shock."
+  },
+  {
+    "id": "ch19_q04",
+    "text": "A hemolytic transfusion reaction is which type?",
+    "options": [
+      "Type I",
+      "Type II (Cytotoxic)",
+      "Type III",
+      "Type IV"
+    ],
+    "correctIndex": 1,
+    "rationale": "Antibodies attacking donor RBCs is a Type II Cytotoxic reaction."
+  },
+  {
+    "id": "ch19_q05",
+    "text": "SLE (Lupus) is which type of hypersensitivity?",
+    "options": [
+      "Type I",
+      "Type II",
+      "Type III (Immune Complex)",
+      "Type IV"
+    ],
+    "correctIndex": 2,
+    "rationale": "SLE involves immune complex deposition in tissues (Type III)."
+  },
+  {
+    "id": "ch19_q06",
+    "text": "Priority for a severe bee sting reaction?",
+    "options": [
+      "Oral antihistamine",
+      "Epinephrine IM",
+      "Ice",
+      "Drive to hospital"
+    ],
+    "correctIndex": 1,
+    "rationale": "Epinephrine is the life-saving priority to reverse anaphylaxis."
+  },
+  {
+    "id": "ch19_q07",
+    "text": "The TB skin test (PPD) is which reaction type?",
+    "options": [
+      "Type I",
+      "Type II",
+      "Type III",
+      "Type IV (Delayed)"
+    ],
+    "correctIndex": 3,
+    "rationale": "PPD is a T-cell mediated Delayed (Type IV) reaction."
+  },
+  {
+    "id": "ch19_q08",
+    "text": "First-line drug for angioedema of the lips/tongue?",
+    "options": [
+      "Fluids",
+      "Epinephrine",
+      "Steroids",
+      "Benadryl"
+    ],
+    "correctIndex": 1,
+    "rationale": "Airway compromise requires Epinephrine immediately."
+  },
+  {
+    "id": "ch19_q09",
+    "text": "Goodpasture",
+    "options": [
+      "Autoimmunity",
+      "Immunodeficiency",
+      "Gammopathy",
+      "Alloimmunity"
+    ],
+    "correctIndex": 0,
+    "rationale": "Autoimmunity is the loss of self-tolerance attacking own tissues."
+  },
+  {
+    "id": "ch19_q10",
+    "text": "Crucial intervention for B-cell deficiency?",
+    "options": [
+      "Avoid live vaccines",
+      "Daily steroids",
+      "Plasmapheresis",
+      "High potassium"
+    ],
+    "correctIndex": 0,
+    "rationale": "Without antibodies, live vaccines can cause the actual disease."
+  },
+  {
+    "id": "ch19_q11",
+    "text": "Serum Sickness is which type of reaction?",
+    "options": [
+      "Type I",
+      "Type II",
+      "Type III",
+      "Type IV"
+    ],
+    "correctIndex": 2,
+    "rationale": "Serum sickness is a Type III immune complex reaction."
+  },
+  {
+    "id": "ch19_q12",
+    "text": "Sign of allergic reaction to antibiotics?",
+    "options": [
+      "HR 72",
+      "Diffuse pruritus/urticaria",
+      "Hunger",
+      "Low urine output"
+    ],
+    "correctIndex": 1,
+    "rationale": "Itching and hives are classic signs of allergy."
+  },
+  {
+    "id": "ch19_q13",
+    "text": "Important instruction before allergy skin testing?",
+    "options": [
+      "Stop antihistamines 48-72h prior",
+      "Fast 12h",
+      "Apply lotion",
+      "Double allergy meds"
+    ],
+    "correctIndex": 0,
+    "rationale": "Antihistamines suppress the skin response and cause false negatives."
+  },
+  {
+    "id": "ch19_q14",
+    "text": "Hyperacute transplant rejection occurs:",
+    "options": [
+      "Minutes to hours",
+      "6 months",
+      "Years",
+      "If meds stopped"
+    ],
+    "correctIndex": 0,
+    "rationale": "Hyperacute rejection is immediate and antibody-mediated."
+  },
+  {
+    "id": "ch19_q15",
+    "text": "Cell type responsible for Type IV reactions?",
+    "options": [
+      "B-cells",
+      "Sensitized T-cells",
+      "Neutrophils",
+      "Mast cells"
+    ],
+    "correctIndex": 1,
+    "rationale": "Type IV is cell-mediated by T-cells, not antibodies."
+  },
+  {
+    "id": "ch19_q16",
+    "text": "Which medication suppresses Type I allergic reactions?",
+    "options": [
+      "Antihistamines",
+      "NSAIDs",
+      "ACE inhibitors",
+      "Beta blockers"
+    ],
+    "correctIndex": 0,
+    "rationale": "Antihistamines block histamine release from mast cells in Type I reactions."
+  },
+  {
+    "id": "ch19_q17",
+    "text": "Hemolytic transfusion reaction is which type?",
+    "options": [
+      "Type I",
+      "Type II",
+      "Type III",
+      "Type IV"
+    ],
+    "correctIndex": 1,
+    "rationale": "Type II cytotoxic reaction occurs when antibodies attack transfused RBCs."
+  },
+  {
+    "id": "ch19_q18",
+    "text": "Contact dermatitis from poison ivy is which type?",
+    "options": [
+      "Type I",
+      "Type II",
+      "Type III",
+      "Type IV"
+    ],
+    "correctIndex": 3,
+    "rationale": "Poison ivy causes a delayed Type IV cell-mediated hypersensitivity."
+  },
+  {
+    "id": "ch19_q19",
+    "text": "Classic sign of Systemic Lupus Erythematosus (SLE)?",
+    "options": [
+      "Butterfly rash",
+      "Spider veins",
+      "Clubbing",
+      "Pallor"
+    ],
+    "correctIndex": 0,
+    "rationale": "Malar (butterfly) rash across cheeks and nose is characteristic of SLE."
+  },
+  {
+    "id": "ch19_q20",
+    "text": "Priority nursing action during anaphylaxis?",
+    "options": [
+      "Establish IV access",
+      "Administer epinephrine",
+      "Get vital signs",
+      "Call physician"
+    ],
+    "correctIndex": 1,
+    "rationale": "Epinephrine is the first-line treatment to reverse bronchospasm and vasodilation."
+  },
+  {
+    "id": "ch19_q21",
+    "text": "Which immunosuppressant requires monitoring for nephrotoxicity?",
+    "options": [
+      "Azathioprine",
+      "Prednisone",
+      "Cyclosporine",
+      "Methotrexate"
+    ],
+    "correctIndex": 2,
+    "rationale": "Cyclosporine can damage kidneys; monitor creatinine and BUN levels."
+  },
+  {
+    "id": "ch19_q22",
+    "text": "Positive ANA test suggests which condition?",
+    "options": [
+      "Diabetes",
+      "Hypertension",
+      "Autoimmune disorder",
+      "Bacterial infection"
+    ],
+    "correctIndex": 2,
+    "rationale": "Antinuclear antibodies (ANA) indicate autoimmune conditions like SLE."
+  },
+  {
+    "id": "ch19_q23",
+    "text": "Chronic transplant rejection time frame?",
+    "options": [
+      "Minutes",
+      "Hours to days",
+      "Months to years",
+      "Never occurs"
+    ],
+    "correctIndex": 2,
+    "rationale": "Chronic rejection is a slow progressive process occurring months to years post-transplant."
+  },
+  {
+    "id": "ch19_q24",
+    "text": "Food most commonly causing Type I allergies in children?",
+    "options": [
+      "Wheat",
+      "Peanuts",
+      "Corn",
+      "Rice"
+    ],
+    "correctIndex": 1,
+    "rationale": "Peanuts cause severe IgE-mediated allergic reactions and anaphylaxis in children."
+  },
+  {
+    "id": "ch19_q25",
+    "text": "Teaching point for clients with latex allergy?",
+    "options": [
+      "Only avoid powdered gloves",
+      "Report to healthcare providers",
+      "Allergy decreases over time",
+      "Safe to use latex at home"
+    ],
+    "correctIndex": 1,
+    "rationale": "Clients must inform all healthcare providers to ensure latex-free equipment and gloves."
+  }
+]

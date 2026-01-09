@@ -23,7 +23,7 @@ const FALLBACK_CHAPTERS = [
   { id: "ch21", title: "Ch 21: MDROs", description: "Transmission & Infection Control.", iconName: "Bug" },
   { id: "ch22", title: "Ch 22: HIV/AIDS", description: "Etiology, Progression, Management.", iconName: "Activity" },
   { id: "quiz1", title: "Review for Quiz 1", description: "Mixed Review: Chapters 18-22.", iconName: "Brain" },
-  { id: "day-to-be-wrong", title: "⚖️ A Day to be Wrong", description: "🔥🔥🔥🔥🔥 Every answer is wrong - pick the least dangerous", iconName: "Scale" }
+
 ];
 
 export default function FlashcardMode({ onBackToHub }) {
@@ -38,6 +38,8 @@ export default function FlashcardMode({ onBackToHub }) {
   const [learningCards, setLearningCards] = useState([]);
   const [shuffle, setShuffle] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [debugLog, setDebugLog] = useState([]);
 
   useEffect(() => {
     loadChapters();
@@ -78,29 +80,65 @@ export default function FlashcardMode({ onBackToHub }) {
   };
 
   const startFlashcards = async (chapter) => {
-    setSelectedChapter(chapter);
-    
-    const questions = questionLoader.getQuestionsForChapter(chapter.id, false);
-    
-    // Convert questions to flashcard format
-    const cards = questions.map((q, idx) => ({
-      id: q.id || idx,
-      front: q.question,
-      back: {
-        answer: q.options?.find(opt => opt.correct)?.text || q.correctAnswer || 'Answer not available',
-        rationale: q.rationale || q.explanation || 'No explanation available',
-        skill: q.skill || [],
-        concept: q.concept || ''
+    try {
+      const log = [`Clicked chapter: ${chapter.title}`];
+      setDebugLog(log);
+      
+      console.log('FlashcardMode: Starting flashcards for chapter:', chapter);
+      setSelectedChapter(chapter);
+      setError(null);
+      
+      // Load real questions from questionLoader
+      log.push('Initializing question loader...');
+      setDebugLog([...log]);
+      
+      await questionLoader.initialize();
+      
+      log.push('Loading questions for chapter...');
+      setDebugLog([...log]);
+      
+      const questions = questionLoader.getQuestionsForChapter(chapter.id);
+      
+      if (!questions || questions.length === 0) {
+        throw new Error(`No questions found for ${chapter.title}`);
       }
-    }));
-
-    setAllCards(shuffle ? shuffleArray(cards) : cards);
-    setCurrentIndex(0);
-    setFlipped(false);
-    setKnownCards([]);
-    setReviewCards([]);
-    setLearningCards([]);
-    setScreen('flashcard-session');
+      
+      log.push(`Loaded ${questions.length} questions`);
+      setDebugLog([...log]);
+      
+      // Convert to flashcard format
+      const cards = questions.map((q, idx) => ({
+        id: idx,
+        front: q.text || q.question || 'No question text',
+        back: {
+          answer: q.options ? q.options[q.correctIndex] : (q.correctAnswer || 'No answer'),
+          rationale: q.rationale || 'No rationale provided.',
+          skill: q.skill || [],
+          concept: q.concept || ''
+        }
+      }));
+      
+      log.push(`Created ${cards.length} flashcards`);
+      log.push('Switching to flashcard view...');
+      setDebugLog([...log]);
+      
+      setAllCards(shuffle ? shuffleArray(cards) : cards);
+      setCurrentIndex(0);
+      setFlipped(false);
+      setKnownCards([]);
+      setReviewCards([]);
+      setLearningCards([]);
+      setScreen('flashcard-session');
+      
+      log.push('SUCCESS: Flashcard view loaded');
+      setDebugLog([...log]);
+    } catch (error) {
+      console.error('FlashcardMode: Error starting flashcards:', error);
+      const errorMsg = `Error loading flashcards: ${error.message}`;
+      setError(errorMsg);
+      setDebugLog([...debugLog, `ERROR: ${errorMsg}`]);
+      alert(errorMsg);
+    }
   };
 
   const shuffleArray = (array) => {
@@ -145,6 +183,13 @@ export default function FlashcardMode({ onBackToHub }) {
     if (currentIndex < allCards.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
+      // Mark this chapter as completed for ranked mode unlocking
+      if (selectedChapter?.id) {
+        const completed = JSON.parse(localStorage.getItem('rnMasteryFlashcardCompleted') || '{}');
+        completed[selectedChapter.id] = true;
+        localStorage.setItem('rnMasteryFlashcardCompleted', JSON.stringify(completed));
+        console.log(`Flashcard completion saved for ${selectedChapter.id}`);
+      }
       setScreen('summary');
     }
   };
@@ -236,6 +281,20 @@ export default function FlashcardMode({ onBackToHub }) {
               <p>Chapters loaded: {chapters.length}</p>
               <p>Loading state: {loading ? 'true' : 'false'}</p>
               <p>Chapter data: {JSON.stringify(chapters.map(ch => ch.id))}</p>
+              {debugLog.length > 0 && (
+                <div className="mt-2 p-2 bg-black/20 rounded">
+                  <p className="font-bold">Last Action Log:</p>
+                  {debugLog.map((log, i) => (
+                    <p key={i} className="text-xs">• {log}</p>
+                  ))}
+                </div>
+              )}
+              {error && (
+                <div className="mt-2 p-2 bg-red-500/20 border border-red-500/50 rounded">
+                  <p className="font-bold text-red-300">Error:</p>
+                  <p className="text-xs text-red-200">{error}</p>
+                </div>
+              )}
             </div>
             
             {chapters.length === 0 ? (
@@ -271,8 +330,21 @@ export default function FlashcardMode({ onBackToHub }) {
     const currentCard = allCards[currentIndex];
     const progress = ((currentIndex + 1) / allCards.length) * 100;
 
+    console.log('FlashcardMode: Current card:', currentCard);
+    console.log('FlashcardMode: All cards:', allCards);
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 text-white p-4">
+        {/* Debug info at top */}
+        <div className="max-w-4xl mx-auto mb-4 p-3 bg-black/30 rounded-lg text-xs">
+          <div>Card Index: {currentIndex}</div>
+          <div>Total Cards: {allCards.length}</div>
+          <div>Front: {currentCard?.front ? 'Yes' : 'No'} ({typeof currentCard?.front})</div>
+          <div>Back: {currentCard?.back ? 'Yes' : 'No'} ({typeof currentCard?.back})</div>
+          {currentCard?.front && <div>Front text: "{currentCard.front.substring(0, 50)}..."</div>}
+          {currentCard?.back?.answer && <div>Answer: "{currentCard.back.answer.substring(0, 50)}..."</div>}
+        </div>
+        
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">

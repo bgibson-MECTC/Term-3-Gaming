@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import RNMasteryGame from './RNMasteryGame';
 import GameHub from './components/GameHub';
 import FlashcardMode from './components/FlashcardMode';
+import ClinicalRoundsApp from './components/ClinicalRoundsApp';
 import './index.css';
 
 /**
@@ -84,6 +85,10 @@ function App() {
   // Route to appropriate game component
   if (selectedGame?.id === 'flashcards') {
     return <FlashcardMode onBackToHub={handleBackToHub} />;
+  }
+
+  if (selectedGame?.id === 'clinical-rounds') {
+    return <ClinicalRoundsApp onBackToHub={handleBackToHub} />;
   }
 
   // Default to RN Mastery Game
