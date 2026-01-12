@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/Term-3-Gaming/static/css/main.ea1bcb64.css",
-    "main.js": "/Term-3-Gaming/static/js/main.f77e485f.js",
+    "main.js": "/Term-3-Gaming/static/js/main.b4c42aca.js",
     "index.html": "/Term-3-Gaming/index.html",
     "main.ea1bcb64.css.map": "/Term-3-Gaming/static/css/main.ea1bcb64.css.map",
-    "main.f77e485f.js.map": "/Term-3-Gaming/static/js/main.f77e485f.js.map"
+    "main.b4c42aca.js.map": "/Term-3-Gaming/static/js/main.b4c42aca.js.map"
   },
   "entrypoints": [
     "static/css/main.ea1bcb64.css",
-    "static/js/main.f77e485f.js"
+    "static/js/main.b4c42aca.js"
   ]
 }
