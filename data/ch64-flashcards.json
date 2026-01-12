@@ -1,0 +1,288 @@
+{
+  "chapter": "ch64",
+  "title": "Chapter 64: Assessment of Reproductive Function",
+  "description": "Flashcards covering female/male reproductive anatomy, hormonal control, assessment techniques, contraception, and diagnostic procedures",
+  "cardCount": 40,
+  "flashcards": [
+    {
+      "id": "ch64_fc_01",
+      "focus": "content",
+      "front": "Which gland's disorder decreases mucus secretion to lubricate the vagina during intercourse?",
+      "back": "Bartholin gland. (Greater vestibular glands secrete mucus for lubrication.)",
+      "tags": ["female_anatomy", "lubrication"]
+    },
+    {
+      "id": "ch64_fc_02",
+      "focus": "exam",
+      "front": "Annual Pap smear screening is recommended to screen for which cancer?",
+      "back": "Cervical cancer. (Detects precancerous/cancerous cervical changes; may detect HPV.)",
+      "tags": ["screening", "pap", "cervical_cancer"]
+    },
+    {
+      "id": "ch64_fc_03",
+      "focus": "content",
+      "front": "Breast milk secretion is most directly stimulated by which hormone?",
+      "back": "Prolactin. (Released by anterior pituitary; stimulates milk production.)",
+      "tags": ["endocrine", "lactation"]
+    },
+    {
+      "id": "ch64_fc_04",
+      "focus": "clinical",
+      "front": "A patient presents with galactorrhea. Which diagnostic evaluation should the nurse anticipate?",
+      "back": "Serum hormone testing. (Workup includes exam + hormone testing ± imaging.)",
+      "tags": ["galactorrhea", "diagnostics"]
+    },
+    {
+      "id": "ch64_fc_05",
+      "focus": "content",
+      "front": "Which hormone is responsible for ovulation?",
+      "back": "Luteinizing hormone (LH). (LH surge completes follicle maturation → oocyte release.)",
+      "tags": ["menstrual_cycle", "ovulation"]
+    },
+    {
+      "id": "ch64_fc_06",
+      "focus": "content",
+      "front": "Male reproductive gland responsible for lubrication (pre-ejaculate) during intercourse?",
+      "back": "Cowper's gland. (Bulbourethral glands secrete pre-ejaculate to lubricate urethra.)",
+      "tags": ["male_anatomy", "lubrication"]
+    },
+    {
+      "id": "ch64_fc_07",
+      "focus": "content",
+      "front": "Which male gland produces thick alkaline fluid making up most of seminal fluid?",
+      "back": "Seminal vesicles. (Produce thick alkaline fluid = majority of ejaculate volume.)",
+      "tags": ["male_anatomy", "semen"]
+    },
+    {
+      "id": "ch64_fc_08",
+      "focus": "content",
+      "front": "Hormone with the major role in testosterone production?",
+      "back": "Luteinizing hormone (LH) / ICSH. (Stimulates Leydig cells to produce testosterone.)",
+      "tags": ["endocrine", "male_repro"]
+    },
+    {
+      "id": "ch64_fc_09",
+      "focus": "content",
+      "front": "Which hormone decreases secretion of LH (per test bank wording)?",
+      "back": "Inhibin. (Secreted from Sertoli cells; signals pituitary to slow hormone release.)",
+      "tags": ["endocrine", "spermatogenesis"]
+    },
+    {
+      "id": "ch64_fc_10",
+      "focus": "clinical",
+      "front": "Priority history question for vaginal discharge with itching + mild dysuria x1 week?",
+      "back": "\"What is the color of the discharge?\" (Symptom characterization guides differential.)",
+      "tags": ["assessment", "vaginal_discharge"]
+    },
+    {
+      "id": "ch64_fc_11",
+      "focus": "exam",
+      "front": "Term for a woman who has not given birth (regardless of outcome)?",
+      "back": "Nulliparous.",
+      "tags": ["ob_terms", "documentation"]
+    },
+    {
+      "id": "ch64_fc_12",
+      "focus": "exam",
+      "front": "Birth control patch teaching: which statement needs correction?",
+      "back": "\"This type of birth control has a low risk of blood clots.\" (Patch delivers more estrogen → higher clot risk, especially smokers.)",
+      "tags": ["contraception", "safety"]
+    },
+    {
+      "id": "ch64_fc_13",
+      "focus": "exam",
+      "front": "Condom teaching: which statement indicates need for more teaching?",
+      "back": "\"Condoms can be used with oil-based lubricants...\" (Oil-based products can damage condoms.)",
+      "tags": ["contraception", "sti_prevention"]
+    },
+    {
+      "id": "ch64_fc_14",
+      "focus": "clinical",
+      "front": "Correct position for breast + axilla palpation during assessment?",
+      "back": "Supine with arm on side being examined placed under her head.",
+      "tags": ["assessment", "breast_exam"]
+    },
+    {
+      "id": "ch64_fc_15",
+      "focus": "clinical",
+      "front": "Finding during bimanual exam suggesting PID?",
+      "back": "Cervical motion tenderness.",
+      "tags": ["pid", "assessment"]
+    },
+    {
+      "id": "ch64_fc_16",
+      "focus": "exam",
+      "front": "Male reproductive function teaching: which statement is incorrect?",
+      "back": "\"Alcohol consumption decreases estrogen production.\" (Alcohol may decrease testosterone and increase estrogen.)",
+      "tags": ["male_repro", "teaching"]
+    },
+    {
+      "id": "ch64_fc_17",
+      "focus": "exam",
+      "front": "Recommended age for males to begin digital prostate examinations (per test bank)?",
+      "back": "50 years.",
+      "tags": ["screening", "male_repro"]
+    },
+    {
+      "id": "ch64_fc_18",
+      "focus": "exam",
+      "front": "Hysteroscopy teaching: which statement indicates need for further teaching?",
+      "back": "\"I will need to be on bedrest for a week...\" (Rest at least 2 days, not a week.)",
+      "tags": ["diagnostics", "patient_teaching"]
+    },
+    {
+      "id": "ch64_fc_19",
+      "focus": "exam",
+      "front": "Colposcopy teaching: which statement is incorrect?",
+      "back": "\"This test requires general anesthesia.\" (Typically does NOT require general anesthesia.)",
+      "tags": ["diagnostics", "patient_teaching"]
+    },
+    {
+      "id": "ch64_fc_20",
+      "focus": "exam",
+      "front": "Post-laparoscopy teaching: which statement needs correction?",
+      "back": "\"I need to notify the provider if I experience bloating and shoulder pain...\" (These can occur from CO₂ and are expected.)",
+      "tags": ["diagnostics", "postop"]
+    },
+    {
+      "id": "ch64_fc_21",
+      "focus": "content",
+      "front": "Dilation & curettage (D&C) is done primarily to assess what?",
+      "back": "Endometrial lining. (Endometrial sampling/removal.)",
+      "tags": ["diagnostics", "uterus"]
+    },
+    {
+      "id": "ch64_fc_22",
+      "focus": "content",
+      "front": "Which hormone confirms pregnancy and helps quantify gestational age?",
+      "back": "Human chorionic gonadotropin (hCG).",
+      "tags": ["pregnancy", "labs"]
+    },
+    {
+      "id": "ch64_fc_23",
+      "focus": "content",
+      "front": "Older adult female: expected age-related change increases risk for what during intercourse?",
+      "back": "Painful intercourse (dyspareunia). (↓Estrogen → vaginal atrophy/dryness.)",
+      "tags": ["aging", "female_repro"]
+    },
+    {
+      "id": "ch64_fc_24",
+      "focus": "content",
+      "front": "Older adult male GU assessment: expected finding?",
+      "back": "Atrophy of the penis. (Also: thinner pubic hair, smaller/softer testicles, less elastic scrotum.)",
+      "tags": ["aging", "male_repro"]
+    },
+    {
+      "id": "ch64_fc_25",
+      "focus": "clinical",
+      "front": "Discharge teaching after hysteroscopy: what should be included?",
+      "back": "Plan to rest the next 2 days before returning to work.",
+      "tags": ["postop", "patient_teaching"]
+    },
+    {
+      "id": "ch64_fc_26",
+      "focus": "clinical",
+      "front": "After endometrial biopsy: patient reports cramping + light bleeding. Best nurse response?",
+      "back": "\"This is anticipated. Take ibuprofen for discomfort.\" (Expected; NSAIDs help.)",
+      "tags": ["postprocedure", "triage"]
+    },
+    {
+      "id": "ch64_fc_27",
+      "focus": "exam",
+      "front": "Infertility concern: which medication/supplement could decrease sperm production?",
+      "back": "Anabolic steroids (supplemental testosterone/anabolics negatively affect sperm production.)",
+      "tags": ["male_repro", "med_effects"]
+    },
+    {
+      "id": "ch64_fc_28",
+      "focus": "content",
+      "front": "Which hormones control the monthly menstrual cycle? (Select-all-that-apply concept)",
+      "back": "Estrogen, FSH, LH, Progesterone. (Prolactin is for milk secretion.)",
+      "tags": ["menstrual_cycle", "endocrine"]
+    },
+    {
+      "id": "ch64_fc_29",
+      "focus": "content",
+      "front": "Normal scrotal assessment findings include what?",
+      "back": "Darker skin than rest of body; left testicle slightly lower; tiny skin folds (rugae).",
+      "tags": ["male_assessment"]
+    },
+    {
+      "id": "ch64_fc_30",
+      "focus": "exam",
+      "front": "Which birth control methods increase risk of blood clots?",
+      "back": "Combination birth control pills, estrogen patch, vaginal ring. (Hormone-releasing methods.)",
+      "tags": ["contraception", "safety"]
+    },
+    {
+      "id": "ch64_fc_31",
+      "focus": "exam",
+      "front": "Diaphragm teaching: which points indicate need for further teaching?",
+      "back": "\"99% effective\" (actually ~85–95%); \"leave in 12 hours\" (leave in 6 hours); \"antibiotics reduce effectiveness\" (that's hormone methods, not diaphragm).",
+      "tags": ["contraception", "patient_teaching"]
+    },
+    {
+      "id": "ch64_fc_32",
+      "focus": "clinical",
+      "front": "Mammogram teaching: what should the nurse include?",
+      "back": "Avoid deodorant/lotions/creams before test; provider will contact with results (may take a few days).",
+      "tags": ["diagnostics", "patient_teaching"]
+    },
+    {
+      "id": "ch64_fc_33",
+      "focus": "exam",
+      "front": "Birth control pills: which personal history prevents use (per test bank item)?",
+      "back": "History of blood clots and cancer.",
+      "tags": ["contraception", "contraindications"]
+    },
+    {
+      "id": "ch64_fc_34",
+      "focus": "exam",
+      "front": "Which diagnostic studies require NPO beforehand?",
+      "back": "Laparoscopy and dilation & curettage (D&C).",
+      "tags": ["diagnostics", "preop"]
+    },
+    {
+      "id": "ch64_fc_35",
+      "focus": "exam",
+      "front": "GTPAL: G3 with 2 term births, 0 preterm, 1 abortion at 12 weeks, 2 living = ?",
+      "back": "G3 P2012.",
+      "tags": ["ob_terms", "documentation"]
+    },
+    {
+      "id": "ch64_fc_36",
+      "focus": "content",
+      "front": "Menstrual cycle control: which pituitary hormones are key?",
+      "back": "FSH and LH (anterior pituitary).",
+      "tags": ["menstrual_cycle", "endocrine"]
+    },
+    {
+      "id": "ch64_fc_37",
+      "focus": "content",
+      "front": "Menstrual cycle control: which ovarian hormones are key?",
+      "back": "Estrogen and progesterone (ovaries).",
+      "tags": ["menstrual_cycle", "endocrine"]
+    },
+    {
+      "id": "ch64_fc_38",
+      "focus": "exam",
+      "front": "Scrotum exam: is erythema a normal finding?",
+      "back": "No. (Normal includes darker skin, left testicle lower, rugae.)",
+      "tags": ["male_assessment", "red_flags"]
+    },
+    {
+      "id": "ch64_fc_39",
+      "focus": "exam",
+      "front": "Mammogram prep: should the patient remove jewelry? (mammogram vs MRI trick)",
+      "back": "Not specifically for mammogram. (Jewelry removal is emphasized for MRI; mammogram focus is avoid deodorant/lotions.)",
+      "tags": ["diagnostics", "test_traps"]
+    },
+    {
+      "id": "ch64_fc_40",
+      "focus": "exam",
+      "front": "Contraception safety: which methods are NOT linked to clot risk (per multi-select item)?",
+      "back": "Cervical cap and IUD (non-hormone methods in that question's context).",
+      "tags": ["contraception", "safety"]
+    }
+  ]
+}
